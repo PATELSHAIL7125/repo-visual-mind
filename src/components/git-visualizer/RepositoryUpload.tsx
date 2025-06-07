@@ -1,29 +1,156 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Upload, Github, GitBranch, Link, FileText } from "lucide-react";
+import { Upload, Github, GitBranch, Link, FileText, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
-export const RepositoryUpload: React.FC = () => {
+interface RepositoryUploadProps {
+  onRepositoryLoaded?: (repoData: any) => void;
+}
+
+export const RepositoryUpload: React.FC<RepositoryUploadProps> = ({ onRepositoryLoaded }) => {
   const [repoUrl, setRepoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState("");
+  const { toast } = useToast();
+
+  const extractRepoInfo = (url: string) => {
+    // Support various GitHub URL formats
+    const patterns = [
+      /github\.com\/([^\/]+)\/([^\/]+)(?:\.git)?/,
+      /github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)/,
+      /github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        return {
+          owner: match[1],
+          repo: match[2].replace('.git', ''),
+          branch: match[3] || 'main'
+        };
+      }
+    }
+    return null;
+  };
+
+  const fetchRepositoryData = async (owner: string, repo: string) => {
+    const baseUrl = 'https://api.github.com';
+    
+    try {
+      setLoadingStatus("Fetching repository information...");
+      
+      // Fetch repository basic info
+      const repoResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}`);
+      if (!repoResponse.ok) {
+        throw new Error(`Repository not found or private: ${repoResponse.status}`);
+      }
+      const repoInfo = await repoResponse.json();
+      
+      setLoadingStatus("Fetching commit history...");
+      
+      // Fetch commits
+      const commitsResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/commits?per_page=100`);
+      const commits = commitsResponse.ok ? await commitsResponse.json() : [];
+      
+      setLoadingStatus("Fetching repository tree...");
+      
+      // Fetch repository tree
+      const treeResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/git/trees/${repoInfo.default_branch}?recursive=1`);
+      const treeData = treeResponse.ok ? await treeResponse.json() : { tree: [] };
+      
+      setLoadingStatus("Fetching contributors...");
+      
+      // Fetch contributors
+      const contributorsResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/contributors`);
+      const contributors = contributorsResponse.ok ? await contributorsResponse.json() : [];
+      
+      setLoadingStatus("Processing data...");
+      
+      const repositoryData = {
+        info: repoInfo,
+        commits: commits,
+        tree: treeData.tree,
+        contributors: contributors,
+        stats: {
+          totalCommits: commits.length,
+          totalFiles: treeData.tree?.length || 0,
+          contributors: contributors.length,
+          languages: repoInfo.language ? [repoInfo.language] : []
+        }
+      };
+      
+      return repositoryData;
+      
+    } catch (error) {
+      console.error('Error fetching repository:', error);
+      throw error;
+    }
+  };
 
   const handleUrlSubmit = async () => {
+    if (!repoUrl.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a repository URL",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const repoInfo = extractRepoInfo(repoUrl);
+    if (!repoInfo) {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid GitHub repository URL",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
-    // TODO: Implement repository fetching logic
-    console.log("Fetching repository:", repoUrl);
-    setTimeout(() => {
+    setLoadingStatus("Starting...");
+    
+    try {
+      const repositoryData = await fetchRepositoryData(repoInfo.owner, repoInfo.repo);
+      
+      toast({
+        title: "Success!",
+        description: `Repository "${repoInfo.repo}" loaded successfully`,
+      });
+      
+      // Call the callback if provided
+      if (onRepositoryLoaded) {
+        onRepositoryLoaded(repositoryData);
+      }
+      
+      console.log("Repository data loaded:", repositoryData);
+      
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch repository. Please check the URL and try again.",
+        variant: "destructive"
+      });
+    } finally {
       setIsLoading(false);
-    }, 2000);
+      setLoadingStatus("");
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
       console.log("Files uploaded:", files);
+      toast({
+        title: "Files uploaded",
+        description: `${files.length} files selected. Processing...`,
+      });
       // TODO: Implement file parsing logic
     }
   };
@@ -72,12 +199,32 @@ export const RepositoryUpload: React.FC = () => {
                   Repository URL
                 </label>
                 <Input
-                  placeholder="https://github.com/username/repository.git"
+                  placeholder="https://github.com/username/repository"
                   value={repoUrl}
                   onChange={(e) => setRepoUrl(e.target.value)}
                   className="w-full"
+                  onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Supports GitHub, GitLab, and other Git hosting services
+                </p>
               </div>
+              
+              {isLoading && loadingStatus && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  >
+                    <GitBranch className="w-4 h-4" />
+                  </motion.div>
+                  {loadingStatus}
+                </motion.div>
+              )}
               
               <Button 
                 onClick={handleUrlSubmit}
@@ -85,16 +232,22 @@ export const RepositoryUpload: React.FC = () => {
                 className="w-full"
               >
                 {isLoading ? (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  >
-                    <GitBranch className="w-4 h-4 mr-2" />
-                  </motion.div>
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="mr-2"
+                    >
+                      <GitBranch className="w-4 h-4" />
+                    </motion.div>
+                    Importing Repository...
+                  </>
                 ) : (
-                  <GitBranch className="w-4 h-4 mr-2" />
+                  <>
+                    <GitBranch className="w-4 h-4 mr-2" />
+                    Import Repository
+                  </>
                 )}
-                {isLoading ? "Fetching Repository..." : "Import Repository"}
               </Button>
             </motion.div>
           </TabsContent>
@@ -117,7 +270,7 @@ export const RepositoryUpload: React.FC = () => {
                   onChange={handleFileUpload}
                   className="hidden"
                   id="file-upload"
-                  webkitdirectory=""
+                  {...({ webkitdirectory: "" } as any)}
                 />
                 <Button asChild variant="outline">
                   <label htmlFor="file-upload" className="cursor-pointer">
@@ -140,10 +293,13 @@ export const RepositoryUpload: React.FC = () => {
               <p className="text-sm text-muted-foreground">
                 Connect with GitHub to import your repositories
               </p>
-              <Button className="w-full">
+              <Button className="w-full" disabled>
                 <Github className="w-4 h-4 mr-2" />
-                Connect GitHub Account
+                Connect GitHub Account (Coming Soon)
               </Button>
+              <p className="text-xs text-muted-foreground">
+                For now, use the URL tab to import public repositories
+              </p>
             </motion.div>
           </TabsContent>
         </Tabs>

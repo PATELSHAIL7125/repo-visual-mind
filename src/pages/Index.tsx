@@ -12,9 +12,16 @@ import { GitBranch, FileText, BarChart, Upload, Github, Sparkles } from "lucide-
 
 const Index = () => {
   const [hasRepository, setHasRepository] = useState(false);
+  const [repositoryData, setRepositoryData] = useState<any>(null);
 
   const handleRepositoryImport = () => {
     // TODO: Implement actual repository import logic
+    setHasRepository(true);
+  };
+
+  const handleRepositoryLoaded = (repoData: any) => {
+    console.log("Repository loaded in Index:", repoData);
+    setRepositoryData(repoData);
     setHasRepository(true);
   };
 
@@ -86,7 +93,7 @@ const Index = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mb-12"
           >
-            <RepositoryUpload />
+            <RepositoryUpload onRepositoryLoaded={handleRepositoryLoaded} />
           </motion.div>
 
           {/* Demo Button */}
@@ -145,6 +152,9 @@ const Index = () => {
     );
   }
 
+  const repoName = repositoryData?.info?.name || "sample-repository";
+  const repoDescription = repositoryData?.info?.description || "Imported repository";
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6">
@@ -160,7 +170,10 @@ const Index = () => {
               <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Repository Analysis
               </h1>
-              <p className="text-muted-foreground">sample-repository</p>
+              <p className="text-muted-foreground">{repoName}</p>
+              {repositoryData?.info?.description && (
+                <p className="text-sm text-muted-foreground">{repositoryData.info.description}</p>
+              )}
             </div>
             <Button 
               variant="outline" 
@@ -215,12 +228,12 @@ const Index = () => {
                         <CardDescription>Interactive visualization of commit history</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <CommitGraph />
+                        <CommitGraph repositoryData={repositoryData} />
                       </CardContent>
                     </Card>
                   </div>
                   <div>
-                    <FileTreeExplorer />
+                    <FileTreeExplorer repositoryData={repositoryData} />
                   </div>
                 </motion.div>
               </TabsContent>
@@ -239,7 +252,7 @@ const Index = () => {
                       <CardDescription>Comprehensive view of all repository commits</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <CommitGraph />
+                      <CommitGraph repositoryData={repositoryData} />
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -253,7 +266,7 @@ const Index = () => {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <FileTreeExplorer />
+                  <FileTreeExplorer repositoryData={repositoryData} />
                 </motion.div>
               </TabsContent>
 
@@ -265,7 +278,7 @@ const Index = () => {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <AnalyticsDashboard />
+                  <AnalyticsDashboard repositoryData={repositoryData} />
                 </motion.div>
               </TabsContent>
             </AnimatePresence>
