@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload, Github, GitBranch, Link, FileText, CheckCircle, AlertCircle } from "lucide-react";
@@ -19,9 +18,11 @@ export const RepositoryUpload: React.FC<RepositoryUploadProps> = ({ onRepository
   const { toast } = useToast();
 
   const extractRepoInfo = (url: string) => {
+    console.log("Extracting repo info from URL:", url);
+    
     // Support various GitHub URL formats
     const patterns = [
-      /github\.com\/([^\/]+)\/([^\/]+)(?:\.git)?/,
+      /github\.com\/([^\/]+)\/([^\/]+)(?:\.git)?(?:\/)?$/,
       /github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)/,
       /github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)/
     ];
@@ -29,46 +30,79 @@ export const RepositoryUpload: React.FC<RepositoryUploadProps> = ({ onRepository
     for (const pattern of patterns) {
       const match = url.match(pattern);
       if (match) {
-        return {
+        const repoInfo = {
           owner: match[1],
           repo: match[2].replace('.git', ''),
           branch: match[3] || 'main'
         };
+        console.log("Extracted repo info:", repoInfo);
+        return repoInfo;
       }
     }
+    console.log("No match found for URL patterns");
     return null;
   };
 
   const fetchRepositoryData = async (owner: string, repo: string) => {
     const baseUrl = 'https://api.github.com';
+    console.log(`Fetching repository data for ${owner}/${repo}`);
     
     try {
       setLoadingStatus("Fetching repository information...");
       
       // Fetch repository basic info
+      console.log(`Making request to: ${baseUrl}/repos/${owner}/${repo}`);
       const repoResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}`);
+      
       if (!repoResponse.ok) {
-        throw new Error(`Repository not found or private: ${repoResponse.status}`);
+        console.error("Repository fetch failed:", repoResponse.status, repoResponse.statusText);
+        if (repoResponse.status === 404) {
+          throw new Error("Repository not found. Please check the URL and make sure the repository is public.");
+        } else if (repoResponse.status === 403) {
+          throw new Error("Access forbidden. The repository might be private or you've hit the API rate limit.");
+        }
+        throw new Error(`HTTP ${repoResponse.status}: ${repoResponse.statusText}`);
       }
+      
       const repoInfo = await repoResponse.json();
+      console.log("Repository info fetched:", repoInfo);
       
       setLoadingStatus("Fetching commit history...");
       
       // Fetch commits
-      const commitsResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/commits?per_page=100`);
-      const commits = commitsResponse.ok ? await commitsResponse.json() : [];
+      const commitsResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/commits?per_page=50`);
+      let commits = [];
+      if (commitsResponse.ok) {
+        commits = await commitsResponse.json();
+        console.log(`Fetched ${commits.length} commits`);
+      } else {
+        console.warn("Failed to fetch commits:", commitsResponse.status);
+      }
       
       setLoadingStatus("Fetching repository tree...");
       
       // Fetch repository tree
-      const treeResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/git/trees/${repoInfo.default_branch}?recursive=1`);
-      const treeData = treeResponse.ok ? await treeResponse.json() : { tree: [] };
+      const defaultBranch = repoInfo.default_branch || 'main';
+      const treeResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`);
+      let treeData = { tree: [] };
+      if (treeResponse.ok) {
+        treeData = await treeResponse.json();
+        console.log(`Fetched ${treeData.tree?.length || 0} files`);
+      } else {
+        console.warn("Failed to fetch repository tree:", treeResponse.status);
+      }
       
       setLoadingStatus("Fetching contributors...");
       
       // Fetch contributors
-      const contributorsResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/contributors`);
-      const contributors = contributorsResponse.ok ? await contributorsResponse.json() : [];
+      const contributorsResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/contributors?per_page=20`);
+      let contributors = [];
+      if (contributorsResponse.ok) {
+        contributors = await contributorsResponse.json();
+        console.log(`Fetched ${contributors.length} contributors`);
+      } else {
+        console.warn("Failed to fetch contributors:", contributorsResponse.status);
+      }
       
       setLoadingStatus("Processing data...");
       
@@ -85,6 +119,7 @@ export const RepositoryUpload: React.FC<RepositoryUploadProps> = ({ onRepository
         }
       };
       
+      console.log("Repository data assembled:", repositoryData);
       return repositoryData;
       
     } catch (error) {
@@ -103,11 +138,12 @@ export const RepositoryUpload: React.FC<RepositoryUploadProps> = ({ onRepository
       return;
     }
 
+    console.log("Processing URL submission:", repoUrl);
     const repoInfo = extractRepoInfo(repoUrl);
     if (!repoInfo) {
       toast({
         title: "Invalid URL",
-        description: "Please enter a valid GitHub repository URL",
+        description: "Please enter a valid GitHub repository URL (e.g., https://github.com/username/repo)",
         variant: "destructive"
       });
       return;
@@ -121,17 +157,17 @@ export const RepositoryUpload: React.FC<RepositoryUploadProps> = ({ onRepository
       
       toast({
         title: "Success!",
-        description: `Repository "${repoInfo.repo}" loaded successfully`,
+        description: `Repository "${repoInfo.repo}" loaded successfully with ${repositoryData.stats.totalCommits} commits`,
       });
       
       // Call the callback if provided
       if (onRepositoryLoaded) {
+        console.log("Calling onRepositoryLoaded callback");
         onRepositoryLoaded(repositoryData);
       }
       
-      console.log("Repository data loaded:", repositoryData);
-      
     } catch (error: any) {
+      console.error("Repository loading failed:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to fetch repository. Please check the URL and try again.",
@@ -199,14 +235,14 @@ export const RepositoryUpload: React.FC<RepositoryUploadProps> = ({ onRepository
                   Repository URL
                 </label>
                 <Input
-                  placeholder="https://github.com/username/repository"
+                  placeholder="https://github.com/facebook/react"
                   value={repoUrl}
                   onChange={(e) => setRepoUrl(e.target.value)}
                   className="w-full"
                   onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Supports GitHub, GitLab, and other Git hosting services
+                  Supports public GitHub repositories (private repos require authentication)
                 </p>
               </div>
               

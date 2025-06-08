@@ -4,6 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface FileTreeExplorerProps {
+  repositoryData?: any;
+}
+
 interface FileNode {
   id: string;
   name: string;
@@ -221,7 +225,7 @@ const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, level, onSelect, sele
   );
 };
 
-export const FileTreeExplorer: React.FC = () => {
+export const FileTreeExplorer: React.FC<FileTreeExplorerProps> = ({ repositoryData }) => {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -230,7 +234,36 @@ export const FileTreeExplorer: React.FC = () => {
     console.log("Selected file:", node);
   };
 
-  const filteredTree = mockFileTree; // TODO: Implement search filtering
+  // Transform real repository data into file tree format if available
+  const buildFileTree = (treeData: any[]): FileNode[] => {
+    const folders: { [key: string]: FileNode } = {};
+    const files: FileNode[] = [];
+
+    treeData.forEach((item: any, index: number) => {
+      const pathParts = item.path.split('/');
+      const fileName = pathParts[pathParts.length - 1];
+      
+      const fileNode: FileNode = {
+        id: `file-${index}`,
+        name: fileName,
+        type: item.type === 'tree' ? 'folder' : 'file',
+        size: item.size || 0,
+        lastModified: "2024-01-15", // GitHub API doesn't provide this in tree endpoint
+        path: item.path
+      };
+
+      if (pathParts.length === 1) {
+        files.push(fileNode);
+      } else {
+        // Handle nested structure - simplified for now
+        files.push(fileNode);
+      }
+    });
+
+    return files;
+  };
+
+  const fileTree = repositoryData?.tree ? buildFileTree(repositoryData.tree) : mockFileTree;
 
   return (
     <div className="h-full flex flex-col bg-card border rounded-lg">
@@ -251,7 +284,7 @@ export const FileTreeExplorer: React.FC = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
-          {filteredTree.map((node) => (
+          {fileTree.map((node) => (
             <FileTreeNode
               key={node.id}
               node={node}

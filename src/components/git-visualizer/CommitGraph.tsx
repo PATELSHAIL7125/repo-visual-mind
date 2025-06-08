@@ -5,6 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { GitBranch, GitCommit, User, Calendar, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface CommitGraphProps {
+  repositoryData?: any;
+}
+
 // Mock data for demonstration
 const mockCommits = [
   {
@@ -103,14 +107,27 @@ const CommitNode: React.FC<CommitNodeProps> = ({ commit, isSelected, onSelect })
   );
 };
 
-export const CommitGraph: React.FC = () => {
+export const CommitGraph: React.FC<CommitGraphProps> = ({ repositoryData }) => {
   const [selectedCommit, setSelectedCommit] = useState<string | null>(null);
-  const selected = mockCommits.find(c => c.id === selectedCommit);
+  
+  // Use real data if available, otherwise use mock data
+  const commits = repositoryData?.commits ? repositoryData.commits.map((commit: any, index: number) => ({
+    id: commit.sha?.substring(0, 7) || `commit-${index}`,
+    message: commit.commit?.message || "No message",
+    author: commit.commit?.author?.name || "Unknown",
+    date: commit.commit?.author?.date?.substring(0, 10) || "Unknown",
+    branch: "main",
+    x: 100,
+    y: 50 + (index * 70),
+    parents: commit.parents?.map((p: any) => p.sha?.substring(0, 7)) || []
+  })).slice(0, 10) : mockCommits;
+  
+  const selected = commits.find((c: any) => c.id === selectedCommit);
 
   const renderConnections = () => {
-    return mockCommits.map(commit => 
-      commit.parents.map(parentId => {
-        const parent = mockCommits.find(c => c.id === parentId);
+    return commits.map((commit: any) => 
+      commit.parents.map((parentId: string) => {
+        const parent = commits.find((c: any) => c.id === parentId);
         if (!parent) return null;
         
         return (
@@ -150,7 +167,7 @@ export const CommitGraph: React.FC = () => {
         <div className="flex-1 border rounded-lg p-4 bg-card">
           <svg width="100%" height="400" className="overflow-visible">
             {renderConnections()}
-            {mockCommits.map(commit => (
+            {commits.map((commit: any) => (
               <CommitNode
                 key={commit.id}
                 commit={commit}
