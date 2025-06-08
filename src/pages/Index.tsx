@@ -5,6 +5,7 @@ import { CommitGraph } from "@/components/git-visualizer/CommitGraph";
 import { FileTreeExplorer } from "@/components/git-visualizer/FileTreeExplorer";
 import { RepositoryUpload } from "@/components/git-visualizer/RepositoryUpload";
 import { AnalyticsDashboard } from "@/components/git-visualizer/AnalyticsDashboard";
+import { ArchitectureDiagram } from "@/components/git-visualizer/ArchitectureDiagram";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";

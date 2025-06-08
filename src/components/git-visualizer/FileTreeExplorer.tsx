@@ -1,7 +1,7 @@
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from "lucide-react";
+import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FileTreeExplorerProps {
@@ -146,10 +146,19 @@ interface FileTreeNodeProps {
   level: number;
   onSelect: (node: FileNode) => void;
   selectedFile: string | null;
+  searchQuery: string;
+  isSearchResult?: boolean;
 }
 
-const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, level, onSelect, selectedFile }) => {
-  const [isExpanded, setIsExpanded] = useState(level === 0);
+const FileTreeNode: React.FC<FileTreeNodeProps> = ({ 
+  node, 
+  level, 
+  onSelect, 
+  selectedFile, 
+  searchQuery,
+  isSearchResult = false 
+}) => {
+  const [isExpanded, setIsExpanded] = useState(level === 0 || isSearchResult);
 
   const handleToggle = () => {
     if (node.type === "folder") {
@@ -157,6 +166,8 @@ const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, level, onSelect, sele
     }
     onSelect(node);
   };
+
+  const isHighlighted = searchQuery && node.name.toLowerCase().includes(searchQuery.toLowerCase());
 
   return (
     <div>
@@ -167,7 +178,8 @@ const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, level, onSelect, sele
         className={cn(
           "flex items-center gap-2 py-1 px-2 rounded-md cursor-pointer transition-colors",
           "hover:bg-accent/50",
-          selectedFile === node.id && "bg-accent text-accent-foreground"
+          selectedFile === node.id && "bg-accent text-accent-foreground",
+          isHighlighted && "bg-yellow-100 dark:bg-yellow-900/30"
         )}
         style={{ paddingLeft: `${level * 16 + 8}px` }}
         onClick={handleToggle}
@@ -216,6 +228,8 @@ const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, level, onSelect, sele
                 level={level + 1}
                 onSelect={onSelect}
                 selectedFile={selectedFile}
+                searchQuery={searchQuery}
+                isSearchResult={isSearchResult}
               />
             ))}
           </motion.div>
@@ -236,10 +250,13 @@ export const FileTreeExplorer: React.FC<FileTreeExplorerProps> = ({ repositoryDa
 
   // Transform real repository data into file tree format if available
   const buildFileTree = (treeData: any[]): FileNode[] => {
-    const folders: { [key: string]: FileNode } = {};
-    const files: FileNode[] = [];
+    const fileMap: { [key: string]: FileNode } = {};
+    const rootNodes: FileNode[] = [];
 
-    treeData.forEach((item: any, index: number) => {
+    // Sort by path to ensure proper hierarchy
+    const sortedData = treeData.sort((a, b) => a.path.localeCompare(b.path));
+
+    sortedData.forEach((item: any, index: number) => {
       const pathParts = item.path.split('/');
       const fileName = pathParts[pathParts.length - 1];
       
@@ -248,34 +265,75 @@ export const FileTreeExplorer: React.FC<FileTreeExplorerProps> = ({ repositoryDa
         name: fileName,
         type: item.type === 'tree' ? 'folder' : 'file',
         size: item.size || 0,
-        lastModified: "2024-01-15", // GitHub API doesn't provide this in tree endpoint
-        path: item.path
+        lastModified: "2024-01-15",
+        path: item.path,
+        children: item.type === 'tree' ? [] : undefined
       };
 
+      fileMap[item.path] = fileNode;
+
       if (pathParts.length === 1) {
-        files.push(fileNode);
+        rootNodes.push(fileNode);
       } else {
-        // Handle nested structure - simplified for now
-        files.push(fileNode);
+        const parentPath = pathParts.slice(0, -1).join('/');
+        const parent = fileMap[parentPath];
+        if (parent && parent.children) {
+          parent.children.push(fileNode);
+        }
       }
     });
 
-    return files;
+    return rootNodes;
   };
 
   const fileTree = repositoryData?.tree ? buildFileTree(repositoryData.tree) : mockFileTree;
+
+  // Filter files based on search query
+  const filteredTree = useMemo(() => {
+    if (!searchQuery) return fileTree;
+
+    const filterNodes = (nodes: FileNode[]): FileNode[] => {
+      return nodes.reduce((acc, node) => {
+        const matchesSearch = node.name.toLowerCase().includes(searchQuery.toLowerCase());
+        let filteredChildren: FileNode[] = [];
+
+        if (node.children) {
+          filteredChildren = filterNodes(node.children);
+        }
+
+        if (matchesSearch || filteredChildren.length > 0) {
+          acc.push({
+            ...node,
+            children: filteredChildren.length > 0 ? filteredChildren : node.children
+          });
+        }
+
+        return acc;
+      }, [] as FileNode[]);
+    };
+
+    return filterNodes(fileTree);
+  }, [fileTree, searchQuery]);
 
   return (
     <div className="h-full flex flex-col bg-card border rounded-lg">
       <div className="p-4 border-b">
         <h3 className="font-semibold text-lg mb-3">Repository Structure</h3>
-        <input
-          type="text"
-          placeholder="Search files..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
-        />
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Search files and folders..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        {searchQuery && (
+          <p className="text-xs text-muted-foreground mt-2">
+            {filteredTree.length > 0 ? `Found ${filteredTree.length} results` : 'No matches found'}
+          </p>
+        )}
       </div>
       
       <div className="flex-1 overflow-y-auto p-2">
@@ -284,13 +342,15 @@ export const FileTreeExplorer: React.FC<FileTreeExplorerProps> = ({ repositoryDa
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
-          {fileTree.map((node) => (
+          {filteredTree.map((node) => (
             <FileTreeNode
               key={node.id}
               node={node}
               level={0}
               onSelect={handleFileSelect}
               selectedFile={selectedFile}
+              searchQuery={searchQuery}
+              isSearchResult={!!searchQuery}
             />
           ))}
         </motion.div>
