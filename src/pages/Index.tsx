@@ -9,7 +9,7 @@ import { ArchitectureDiagram } from "@/components/git-visualizer/ArchitectureDia
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { GitBranch, FileText, BarChart, Upload, Github, Sparkles } from "lucide-react";
+import { GitBranch, FileText, BarChart, Upload, Github, Sparkles, Network } from "lucide-react";
 
 const Index = () => {
   const [hasRepository, setHasRepository] = useState(false);
@@ -193,7 +193,7 @@ const Index = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <BarChart className="w-4 h-4" />
                 Overview
@@ -206,6 +206,10 @@ const Index = () => {
                 <FileText className="w-4 h-4" />
                 Files
               </TabsTrigger>
+              <TabsTrigger value="architecture" className="flex items-center gap-2">
+                <Network className="w-4 h-4" />
+                Architecture
+              </TabsTrigger>
               <TabsTrigger value="analytics" className="flex items-center gap-2">
                 <BarChart className="w-4 h-4" />
                 Analytics
@@ -215,7 +219,7 @@ const Index = () => {
             <AnimatePresence mode="wait">
               <TabsContent value="overview" className="space-y-6">
                 <motion.div
-                  key="overview"
+                  key="overview-tab"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -223,15 +227,7 @@ const Index = () => {
                   className="grid grid-cols-1 xl:grid-cols-3 gap-6"
                 >
                   <div className="xl:col-span-2">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Commit Graph</CardTitle>
-                        <CardDescription>Interactive visualization of commit history</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <CommitGraph repositoryData={repositoryData} />
-                      </CardContent>
-                    </Card>
+                    <CommitGraph repositoryData={repositoryData} />
                   </div>
                   <div>
                     <FileTreeExplorer repositoryData={repositoryData} />
@@ -241,27 +237,19 @@ const Index = () => {
 
               <TabsContent value="commits">
                 <motion.div
-                  key="commits"
+                  key="commits-tab"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Detailed Commit History</CardTitle>
-                      <CardDescription>Comprehensive view of all repository commits</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <CommitGraph repositoryData={repositoryData} />
-                    </CardContent>
-                  </Card>
+                  <CommitGraph repositoryData={repositoryData} />
                 </motion.div>
               </TabsContent>
 
               <TabsContent value="files">
                 <motion.div
-                  key="files"
+                  key="files-tab"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -271,9 +259,21 @@ const Index = () => {
                 </motion.div>
               </TabsContent>
 
+              <TabsContent value="architecture">
+                <motion.div
+                  key="architecture-tab"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ArchitectureDiagram repositoryData={repositoryData} />
+                </motion.div>
+              </TabsContent>
+
               <TabsContent value="analytics">
                 <motion.div
-                  key="analytics"
+                  key="analytics-tab"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
