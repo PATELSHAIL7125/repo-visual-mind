@@ -77,12 +77,15 @@ const processRepositoryStructure = (tree: any[]): FileNode[] => {
           type: isFile ? 'file' : 'folder',
           path: parts.slice(0, index + 1).join('/'),
           extension: isFile ? extension : undefined,
-          children: isFile ? undefined : {}
+          children: isFile ? undefined : []
         };
       }
       
       if (!isFile && current[part].children) {
-        current = current[part].children as any;
+        current = current[part].children.reduce((acc: any, child: FileNode) => {
+          acc[child.name] = child;
+          return acc;
+        }, {});
       }
     });
   });
@@ -90,7 +93,7 @@ const processRepositoryStructure = (tree: any[]): FileNode[] => {
   const convertToArray = (obj: any): FileNode[] => {
     return Object.values(obj).map((node: any) => ({
       ...node,
-      children: node.children ? convertToArray(node.children) : undefined
+      children: node.children && node.children.length > 0 ? convertToArray(node.children) : undefined
     }));
   };
   
