@@ -35,7 +35,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ reposito
       { name: "HTML", value: 10, color: "#e34f26" }
     ];
     
-    const languageCount: any = {};
+    const languageCount: Record<string, number> = {};
     const languageColors: any = {
       '.ts': { name: 'TypeScript', color: '#3178c6' },
       '.tsx': { name: 'TypeScript', color: '#3178c6' },
@@ -56,11 +56,11 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ reposito
       }
     });
     
-    const total = Object.values(languageCount).reduce((sum: number, count: any) => sum + Number(count), 0);
+    const total = Object.values(languageCount).reduce((sum: number, count: number) => sum + count, 0);
     
-    return Object.entries(languageCount).map(([name, count]: [string, any]) => ({
+    return Object.entries(languageCount).map(([name, count]) => ({
       name,
-      value: Math.round((Number(count) / total) * 100),
+      value: Math.round((count / total) * 100),
       color: languageColors[Object.keys(languageColors).find(ext => languageColors[ext].name === name) || '']?.color || '#666'
     }));
   };
