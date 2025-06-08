@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CommitGraph } from "@/components/git-visualizer/CommitGraph";
@@ -6,10 +5,11 @@ import { FileTreeExplorer } from "@/components/git-visualizer/FileTreeExplorer";
 import { RepositoryUpload } from "@/components/git-visualizer/RepositoryUpload";
 import { AnalyticsDashboard } from "@/components/git-visualizer/AnalyticsDashboard";
 import { ArchitectureDiagram } from "@/components/git-visualizer/ArchitectureDiagram";
+import { SystemArchitectureDiagram } from "@/components/git-visualizer/SystemArchitectureDiagram";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { GitBranch, FileText, BarChart, Upload, Github, Sparkles, Network } from "lucide-react";
+import { GitBranch, FileText, BarChart, Upload, Github, Sparkles, Network, Layers } from "lucide-react";
 
 const Index = () => {
   const [hasRepository, setHasRepository] = useState(false);
@@ -193,7 +193,7 @@ const Index = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <BarChart className="w-4 h-4" />
                 Overview
@@ -208,7 +208,11 @@ const Index = () => {
               </TabsTrigger>
               <TabsTrigger value="architecture" className="flex items-center gap-2">
                 <Network className="w-4 h-4" />
-                Architecture
+                File Structure
+              </TabsTrigger>
+              <TabsTrigger value="system" className="flex items-center gap-2">
+                <Layers className="w-4 h-4" />
+                System Architecture
               </TabsTrigger>
               <TabsTrigger value="analytics" className="flex items-center gap-2">
                 <BarChart className="w-4 h-4" />
@@ -268,6 +272,18 @@ const Index = () => {
                   transition={{ duration: 0.3 }}
                 >
                   <ArchitectureDiagram repositoryData={repositoryData} />
+                </motion.div>
+              </TabsContent>
+
+              <TabsContent value="system">
+                <motion.div
+                  key="system-tab"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <SystemArchitectureDiagram repositoryData={repositoryData} />
                 </motion.div>
               </TabsContent>
 
