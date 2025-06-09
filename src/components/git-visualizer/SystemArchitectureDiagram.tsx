@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,9 @@ import {
   Router,
   Smartphone,
   Folder,
-  File
+  File,
+  Brain,
+  Sparkles
 } from "lucide-react";
 
 interface SystemArchitectureDiagramProps {
@@ -42,6 +45,8 @@ interface ArchitectureNode {
   position: { x: number; y: number };
   tech?: string[];
   fileCount?: number;
+  importance: 'high' | 'medium' | 'low';
+  githubUrl?: string;
 }
 
 const analyzeRepositoryStructure = (repositoryData: any) => {
@@ -56,13 +61,23 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     hasTests: false,
     hasDocker: false,
     hasCI: false,
+    hasNextJS: false,
+    hasVite: false,
+    hasTailwind: false,
+    hasESLint: false,
+    hasPrettier: false,
+    hasWebpack: false,
+    hasRedux: false,
+    hasGraphQL: false,
+    hasStorybook: false,
     components: [] as string[],
     services: [] as string[],
     configs: [] as string[],
     styles: [] as string[],
     assets: [] as string[],
     docs: [] as string[],
-    packageManager: 'npm'
+    packageManager: 'npm',
+    framework: 'unknown'
   };
 
   const fileStructure: { [key: string]: number } = {};
@@ -76,15 +91,44 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     // Count files in directories
     fileStructure[directory] = (fileStructure[directory] || 0) + 1;
 
-    // Technology detection
+    // Enhanced technology detection
     if (extension === 'tsx' || extension === 'jsx' || fileName.includes('react')) {
       analysis.hasReact = true;
+      analysis.framework = 'React';
     }
     if (extension === 'ts' || extension === 'tsx') {
       analysis.hasTypeScript = true;
     }
     if (fileName === 'package.json' || fileName === 'server.js' || fileName === 'app.js') {
       analysis.hasNodeJS = true;
+    }
+    if (fileName === 'next.config.js' || fileName === 'next.config.ts') {
+      analysis.hasNextJS = true;
+      analysis.framework = 'Next.js';
+    }
+    if (fileName === 'vite.config.js' || fileName === 'vite.config.ts') {
+      analysis.hasVite = true;
+    }
+    if (fileName === 'tailwind.config.js' || fileName === 'tailwind.config.ts') {
+      analysis.hasTailwind = true;
+    }
+    if (fileName === '.eslintrc' || fileName === 'eslint.config.js') {
+      analysis.hasESLint = true;
+    }
+    if (fileName === '.prettierrc' || fileName === 'prettier.config.js') {
+      analysis.hasPrettier = true;
+    }
+    if (fileName === 'webpack.config.js') {
+      analysis.hasWebpack = true;
+    }
+    if (path.includes('redux') || path.includes('store')) {
+      analysis.hasRedux = true;
+    }
+    if (fileName.includes('graphql') || extension === 'graphql') {
+      analysis.hasGraphQL = true;
+    }
+    if (path.includes('storybook') || fileName.includes('stories')) {
+      analysis.hasStorybook = true;
     }
     if (fileName.includes('database') || fileName.includes('db') || extension === 'sql') {
       analysis.hasDatabase = true;
@@ -131,219 +175,287 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
   return { analysis, fileStructure };
 };
 
-const generateDynamicArchitecture = (repositoryData: any): ArchitectureNode[] => {
+const generateAdvancedArchitecture = (repositoryData: any): ArchitectureNode[] => {
   const result = analyzeRepositoryStructure(repositoryData);
   if (!result) return [];
 
   const { analysis, fileStructure } = result;
   const nodes: ArchitectureNode[] = [];
+  const baseUrl = repositoryData?.info?.githubUrl || '';
 
   let nodeId = 1;
-  let yOffset = 0;
 
-  // Frontend Layer
-  if (analysis.hasReact) {
-    nodes.push({
+  // Create a more sophisticated layout
+  const layers = {
+    presentation: { y: 50, nodes: [] as ArchitectureNode[] },
+    business: { y: 200, nodes: [] as ArchitectureNode[] },
+    data: { y: 350, nodes: [] as ArchitectureNode[] },
+    infrastructure: { y: 500, nodes: [] as ArchitectureNode[] }
+  };
+
+  // Presentation Layer
+  if (analysis.hasReact || analysis.hasNextJS) {
+    const mainFramework = analysis.hasNextJS ? 'Next.js' : 'React';
+    const tech = [mainFramework];
+    if (analysis.hasTypeScript) tech.push('TypeScript');
+    if (analysis.hasTailwind) tech.push('Tailwind CSS');
+
+    layers.presentation.nodes.push({
       id: `node-${nodeId++}`,
-      name: analysis.hasTypeScript ? 'React + TypeScript' : 'React App',
+      name: `${mainFramework} Application`,
       type: 'frontend',
-      icon: <Code className="w-4 h-4" />,
-      description: `${analysis.hasTypeScript ? 'TypeScript React' : 'JavaScript React'} application`,
+      icon: <Code className="w-5 h-5" />,
+      description: `Main ${mainFramework} application with ${analysis.hasTypeScript ? 'TypeScript' : 'JavaScript'}`,
       filePath: 'src/App.tsx',
       connections: [],
-      color: 'bg-blue-50 border-blue-200 text-blue-700',
-      position: { x: 50, y: yOffset },
-      tech: analysis.hasTypeScript ? ['React', 'TypeScript'] : ['React', 'JavaScript'],
-      fileCount: fileStructure['src'] || 0
+      color: 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 text-blue-800',
+      position: { x: 0, y: 0 },
+      tech,
+      fileCount: fileStructure['src'] || 0,
+      importance: 'high',
+      githubUrl: `${baseUrl}/blob/main/src/App.tsx`
     });
-
-    if (analysis.components.length > 0) {
-      nodes.push({
-        id: `node-${nodeId++}`,
-        name: 'UI Components',
-        type: 'component',
-        icon: <Package className="w-4 h-4" />,
-        description: `${analysis.components.length} reusable components`,
-        filePath: 'src/components/',
-        connections: [],
-        color: 'bg-purple-50 border-purple-200 text-purple-700',
-        position: { x: 320, y: yOffset },
-        tech: ['Component Library'],
-        fileCount: analysis.components.length
-      });
-    }
-
-    if (analysis.styles.length > 0) {
-      nodes.push({
-        id: `node-${nodeId++}`,
-        name: 'Styling System',
-        type: 'frontend',
-        icon: <Smartphone className="w-4 h-4" />,
-        description: `CSS/SCSS styling with ${analysis.styles.length} files`,
-        filePath: 'src/styles/',
-        connections: [],
-        color: 'bg-pink-50 border-pink-200 text-pink-700',
-        position: { x: 590, y: yOffset },
-        tech: ['CSS', 'SCSS'],
-        fileCount: analysis.styles.length
-      });
-    }
   }
 
-  yOffset += 120;
+  if (analysis.components.length > 0) {
+    layers.presentation.nodes.push({
+      id: `node-${nodeId++}`,
+      name: 'UI Components',
+      type: 'component',
+      icon: <Package className="w-5 h-5" />,
+      description: `${analysis.components.length} reusable React components`,
+      filePath: 'src/components/',
+      connections: [],
+      color: 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-300 text-purple-800',
+      position: { x: 0, y: 0 },
+      tech: ['React Components', 'Reusable UI'],
+      fileCount: analysis.components.length,
+      importance: 'high',
+      githubUrl: `${baseUrl}/tree/main/src/components`
+    });
+  }
 
-  // Services/Utils Layer
+  if (analysis.styles.length > 0 || analysis.hasTailwind) {
+    const tech = analysis.hasTailwind ? ['Tailwind CSS'] : ['CSS', 'SCSS'];
+    layers.presentation.nodes.push({
+      id: `node-${nodeId++}`,
+      name: 'Styling System',
+      type: 'frontend',
+      icon: <Smartphone className="w-5 h-5" />,
+      description: `Design system with ${analysis.hasTailwind ? 'Tailwind CSS' : 'custom styles'}`,
+      filePath: analysis.hasTailwind ? 'tailwind.config.ts' : 'src/styles/',
+      connections: [],
+      color: 'bg-gradient-to-br from-pink-50 to-pink-100 border-pink-300 text-pink-800',
+      position: { x: 0, y: 0 },
+      tech,
+      fileCount: analysis.styles.length,
+      importance: 'medium',
+      githubUrl: `${baseUrl}/blob/main/tailwind.config.ts`
+    });
+  }
+
+  // Business Logic Layer
   if (analysis.services.length > 0) {
-    nodes.push({
+    layers.business.nodes.push({
       id: `node-${nodeId++}`,
       name: 'Business Logic',
       type: 'service',
-      icon: <Zap className="w-4 h-4" />,
-      description: `${analysis.services.length} service and utility files`,
+      icon: <Zap className="w-5 h-5" />,
+      description: `${analysis.services.length} service modules and utilities`,
       filePath: 'src/services/',
       connections: [],
-      color: 'bg-green-50 border-green-200 text-green-700',
-      position: { x: 50, y: yOffset },
-      tech: ['Services', 'Utilities'],
-      fileCount: analysis.services.length
+      color: 'bg-gradient-to-br from-green-50 to-green-100 border-green-300 text-green-800',
+      position: { x: 0, y: 0 },
+      tech: ['Services', 'Business Rules'],
+      fileCount: analysis.services.length,
+      importance: 'high',
+      githubUrl: `${baseUrl}/tree/main/src/services`
     });
   }
 
   if (analysis.hasAPI) {
-    nodes.push({
+    layers.business.nodes.push({
       id: `node-${nodeId++}`,
-      name: 'API Layer',
+      name: 'API Integration',
       type: 'service',
-      icon: <Server className="w-4 h-4" />,
-      description: 'API endpoints and data fetching',
+      icon: <Server className="w-5 h-5" />,
+      description: 'RESTful API endpoints and data fetching',
       filePath: 'src/api/',
       connections: [],
-      color: 'bg-orange-50 border-orange-200 text-orange-700',
-      position: { x: 320, y: yOffset },
-      tech: ['REST API', 'HTTP Client']
+      color: 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-300 text-orange-800',
+      position: { x: 0, y: 0 },
+      tech: ['REST API', 'HTTP Client'],
+      importance: 'high',
+      githubUrl: `${baseUrl}/tree/main/src/api`
     });
   }
 
+  if (analysis.hasRedux) {
+    layers.business.nodes.push({
+      id: `node-${nodeId++}`,
+      name: 'State Management',
+      type: 'service',
+      icon: <Database className="w-5 h-5" />,
+      description: 'Redux store for application state',
+      filePath: 'src/store/',
+      connections: [],
+      color: 'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-300 text-indigo-800',
+      position: { x: 0, y: 0 },
+      tech: ['Redux', 'State Management'],
+      importance: 'high',
+      githubUrl: `${baseUrl}/tree/main/src/store`
+    });
+  }
+
+  // Data Layer
   if (analysis.hasDatabase) {
-    nodes.push({
+    layers.data.nodes.push({
       id: `node-${nodeId++}`,
       name: 'Database',
       type: 'database',
-      icon: <Database className="w-4 h-4" />,
-      description: 'Data storage and management',
+      icon: <Database className="w-5 h-5" />,
+      description: 'Data persistence and storage layer',
       filePath: 'database/',
       connections: [],
-      color: 'bg-cyan-50 border-cyan-200 text-cyan-700',
-      position: { x: 590, y: yOffset },
-      tech: ['Database', 'SQL']
+      color: 'bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-300 text-cyan-800',
+      position: { x: 0, y: 0 },
+      tech: ['Database', 'SQL'],
+      importance: 'high',
+      githubUrl: `${baseUrl}/tree/main/database`
     });
   }
 
-  yOffset += 120;
-
-  // Configuration Layer
-  if (analysis.configs.length > 0) {
-    nodes.push({
+  if (analysis.hasGraphQL) {
+    layers.data.nodes.push({
       id: `node-${nodeId++}`,
-      name: 'Configuration',
-      type: 'config',
-      icon: <Settings className="w-4 h-4" />,
-      description: `${analysis.configs.length} configuration files`,
-      filePath: './',
+      name: 'GraphQL API',
+      type: 'service',
+      icon: <Globe className="w-5 h-5" />,
+      description: 'GraphQL schema and resolvers',
+      filePath: 'src/graphql/',
       connections: [],
-      color: 'bg-gray-50 border-gray-200 text-gray-700',
-      position: { x: 50, y: yOffset },
-      tech: ['JSON', 'YAML', 'ENV'],
-      fileCount: analysis.configs.length
+      color: 'bg-gradient-to-br from-pink-50 to-pink-100 border-pink-300 text-pink-800',
+      position: { x: 0, y: 0 },
+      tech: ['GraphQL', 'API'],
+      importance: 'high',
+      githubUrl: `${baseUrl}/tree/main/src/graphql`
     });
   }
 
-  // Build System
-  nodes.push({
-    id: `node-${nodeId++}`,
-    name: `Build System (${analysis.packageManager})`,
-    type: 'infrastructure',
-    icon: <Package className="w-4 h-4" />,
-    description: `Package management with ${analysis.packageManager}`,
-    filePath: 'package.json',
-    connections: [],
-    color: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-    position: { x: 320, y: yOffset },
-    tech: [analysis.packageManager, 'Build Tools']
-  });
+  // Infrastructure Layer
+  if (analysis.hasVite || analysis.hasWebpack) {
+    const buildTool = analysis.hasVite ? 'Vite' : 'Webpack';
+    layers.infrastructure.nodes.push({
+      id: `node-${nodeId++}`,
+      name: `Build System (${buildTool})`,
+      type: 'infrastructure',
+      icon: <Package className="w-5 h-5" />,
+      description: `${buildTool} build configuration and bundling`,
+      filePath: analysis.hasVite ? 'vite.config.ts' : 'webpack.config.js',
+      connections: [],
+      color: 'bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-300 text-yellow-800',
+      position: { x: 0, y: 0 },
+      tech: [buildTool, 'Module Bundling'],
+      importance: 'medium',
+      githubUrl: `${baseUrl}/blob/main/vite.config.ts`
+    });
+  }
 
   if (analysis.hasTests) {
-    nodes.push({
+    layers.infrastructure.nodes.push({
       id: `node-${nodeId++}`,
-      name: 'Testing Suite',
+      name: 'Testing Framework',
       type: 'infrastructure',
-      icon: <Shield className="w-4 h-4" />,
+      icon: <Shield className="w-5 h-5" />,
       description: 'Automated testing and quality assurance',
       filePath: 'tests/',
       connections: [],
-      color: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-      position: { x: 590, y: yOffset },
-      tech: ['Unit Tests', 'Integration Tests']
+      color: 'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-300 text-emerald-800',
+      position: { x: 0, y: 0 },
+      tech: ['Testing', 'QA'],
+      importance: 'high',
+      githubUrl: `${baseUrl}/tree/main/tests`
     });
   }
 
-  yOffset += 120;
-
-  // Infrastructure Layer
   if (analysis.hasDocker) {
-    nodes.push({
+    layers.infrastructure.nodes.push({
       id: `node-${nodeId++}`,
       name: 'Containerization',
       type: 'infrastructure',
-      icon: <Cloud className="w-4 h-4" />,
+      icon: <Cloud className="w-5 h-5" />,
       description: 'Docker containerization setup',
       filePath: 'Dockerfile',
       connections: [],
-      color: 'bg-slate-50 border-slate-200 text-slate-700',
-      position: { x: 50, y: yOffset },
-      tech: ['Docker', 'Containers']
+      color: 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-300 text-slate-800',
+      position: { x: 0, y: 0 },
+      tech: ['Docker', 'Containers'],
+      importance: 'medium',
+      githubUrl: `${baseUrl}/blob/main/Dockerfile`
     });
   }
 
   if (analysis.hasCI) {
-    nodes.push({
+    layers.infrastructure.nodes.push({
       id: `node-${nodeId++}`,
       name: 'CI/CD Pipeline',
       type: 'infrastructure',
-      icon: <GitBranch className="w-4 h-4" />,
+      icon: <GitBranch className="w-5 h-5" />,
       description: 'Continuous integration and deployment',
-      filePath: '.github/',
+      filePath: '.github/workflows/',
       connections: [],
-      color: 'bg-indigo-50 border-indigo-200 text-indigo-700',
-      position: { x: 320, y: yOffset },
-      tech: ['GitHub Actions', 'CI/CD']
+      color: 'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-300 text-indigo-800',
+      position: { x: 0, y: 0 },
+      tech: ['GitHub Actions', 'CI/CD'],
+      importance: 'high',
+      githubUrl: `${baseUrl}/tree/main/.github/workflows`
     });
   }
 
-  if (analysis.docs.length > 0) {
-    nodes.push({
+  if (analysis.hasESLint || analysis.hasPrettier) {
+    const tools = [];
+    if (analysis.hasESLint) tools.push('ESLint');
+    if (analysis.hasPrettier) tools.push('Prettier');
+    
+    layers.infrastructure.nodes.push({
       id: `node-${nodeId++}`,
-      name: 'Documentation',
-      type: 'config',
-      icon: <FileText className="w-4 h-4" />,
-      description: `${analysis.docs.length} documentation files`,
-      filePath: 'README.md',
+      name: 'Code Quality',
+      type: 'infrastructure',
+      icon: <Settings className="w-5 h-5" />,
+      description: `Code linting and formatting with ${tools.join(' & ')}`,
+      filePath: '.eslintrc',
       connections: [],
-      color: 'bg-teal-50 border-teal-200 text-teal-700',
-      position: { x: 590, y: yOffset },
-      tech: ['Markdown', 'Documentation'],
-      fileCount: analysis.docs.length
+      color: 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300 text-gray-800',
+      position: { x: 0, y: 0 },
+      tech: tools,
+      importance: 'medium',
+      githubUrl: `${baseUrl}/blob/main/.eslintrc`
     });
   }
+
+  // Position nodes in each layer
+  Object.entries(layers).forEach(([layerName, layer]) => {
+    const nodesInLayer = layer.nodes.length;
+    const spacing = Math.max(300, 800 / Math.max(nodesInLayer, 1));
+    const startX = Math.max(50, (900 - (nodesInLayer - 1) * spacing) / 2);
+
+    layer.nodes.forEach((node, index) => {
+      node.position = {
+        x: startX + index * spacing,
+        y: layer.y
+      };
+      nodes.push(node);
+    });
+  });
 
   return nodes;
 };
 
 const ConnectionLine: React.FC<{ from: ArchitectureNode; to: ArchitectureNode }> = ({ from, to }) => {
-  const fromX = from.position.x + 115;
-  const fromY = from.position.y + 45;
-  const toX = to.position.x + 115;
-  const toY = to.position.y + 45;
+  const fromX = from.position.x + 140;
+  const fromY = from.position.y + 60;
+  const toX = to.position.x + 140;
+  const toY = to.position.y + 60;
 
   return (
     <motion.line
@@ -352,11 +464,11 @@ const ConnectionLine: React.FC<{ from: ArchitectureNode; to: ArchitectureNode }>
       x2={toX}
       y2={toY}
       stroke="hsl(var(--muted-foreground))"
-      strokeWidth="1.5"
-      strokeDasharray="4,4"
+      strokeWidth="2"
+      strokeDasharray="6,4"
       initial={{ pathLength: 0, opacity: 0 }}
-      animate={{ pathLength: 1, opacity: 0.4 }}
-      transition={{ duration: 1.5, delay: Math.random() * 0.5 }}
+      animate={{ pathLength: 1, opacity: 0.3 }}
+      transition={{ duration: 2, delay: Math.random() * 1 }}
       className="pointer-events-none"
     />
   );
@@ -368,6 +480,17 @@ const ArchitectureNodeComponent: React.FC<{
 }> = ({ node, onNodeClick }) => {
   const [isHovered, setIsHovered] = useState(false);
 
+  const getImportanceIndicator = (importance: string) => {
+    switch (importance) {
+      case 'high':
+        return <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />;
+      case 'medium':
+        return <div className="w-2 h-2 bg-yellow-500 rounded-full" />;
+      default:
+        return <div className="w-2 h-2 bg-green-500 rounded-full" />;
+    }
+  };
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -377,67 +500,80 @@ const ArchitectureNodeComponent: React.FC<{
             style={{ 
               left: node.position.x, 
               top: node.position.y,
-              width: '240px',
-              height: '100px'
+              width: '280px',
+              height: '120px'
             }}
-            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            initial={{ opacity: 0, scale: 0.8, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ 
-              duration: 0.6, 
-              delay: (node.position.y / 100) * 0.1,
+              duration: 0.7, 
+              delay: (node.position.y / 150) * 0.1,
               type: "spring",
-              stiffness: 100 
+              stiffness: 80 
             }}
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.05, y: -4 }}
+            whileTap={{ scale: 0.95 }}
             onHoverStart={() => setIsHovered(true)}
             onHoverEnd={() => setIsHovered(false)}
             onClick={() => onNodeClick(node)}
           >
-            <Card className={`${node.color} transition-all duration-300 h-full border-2 ${
-              isHovered ? 'shadow-lg border-primary/30' : 'shadow-sm'
+            <Card className={`${node.color} transition-all duration-500 h-full border-2 shadow-lg ${
+              isHovered ? 'shadow-xl border-primary/50 ring-2 ring-primary/20' : 'shadow-md'
             }`}>
-              <CardContent className="p-3">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    {node.icon}
-                    <h3 className="font-semibold text-sm leading-tight">{node.name}</h3>
+              <CardContent className="p-4 h-full flex flex-col">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/50 rounded-lg">
+                      {node.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm leading-tight">{node.name}</h3>
+                      <Badge variant="outline" className="text-xs px-2 py-0 mt-1">
+                        {node.type}
+                      </Badge>
+                    </div>
                   </div>
-                  {node.filePath && (
+                  <div className="flex items-center gap-1">
+                    {getImportanceIndicator(node.importance)}
                     <ExternalLink className="w-3 h-3 opacity-60" />
-                  )}
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                
+                <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">
                   {node.description}
                 </p>
+                
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-xs px-2 py-0">
-                    {node.type}
-                  </Badge>
                   <div className="flex items-center gap-2">
                     {node.fileCount && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs font-medium bg-white/30 px-2 py-1 rounded">
                         {node.fileCount} files
                       </span>
                     )}
-                    {node.tech && (
-                      <div className="text-xs text-muted-foreground">
-                        {node.tech[0]}
-                      </div>
-                    )}
                   </div>
+                  {node.tech && (
+                    <div className="text-xs font-medium bg-white/30 px-2 py-1 rounded truncate max-w-24">
+                      {node.tech[0]}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </motion.div>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-80">
-          <div className="space-y-2">
-            <p className="font-medium">{node.name}</p>
+        <TooltipContent side="top" className="max-w-96">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-primary/10 rounded">
+                {node.icon}
+              </div>
+              <p className="font-bold">{node.name}</p>
+              {getImportanceIndicator(node.importance)}
+            </div>
             <p className="text-sm">{node.description}</p>
             {node.tech && (
               <div className="space-y-1">
-                <p className="text-xs font-medium">Technologies:</p>
+                <p className="text-xs font-semibold">Technologies:</p>
                 <div className="flex flex-wrap gap-1">
                   {node.tech.map((tech, index) => (
                     <Badge key={index} variant="secondary" className="text-xs">
@@ -457,6 +593,9 @@ const ArchitectureNodeComponent: React.FC<{
                 📊 {node.fileCount} files
               </p>
             )}
+            <p className="text-xs text-blue-600">
+              Click to open in GitHub →
+            </p>
           </div>
         </TooltipContent>
       </Tooltip>
@@ -468,119 +607,185 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
   const { toast } = useToast();
 
   const architectureNodes = useMemo(() => {
-    return generateDynamicArchitecture(repositoryData);
+    return generateAdvancedArchitecture(repositoryData);
   }, [repositoryData]);
 
   const handleNodeClick = (node: ArchitectureNode) => {
-    if (node.filePath) {
+    if (node.githubUrl) {
+      // Open in new tab
+      window.open(node.githubUrl, '_blank', 'noopener,noreferrer');
+      
       toast({
-        title: `${node.name} Component`,
-        description: `File: ${node.filePath}\n\nThis component contains ${node.fileCount || 'multiple'} files. In a real implementation, this would open the code file in your editor.`,
-        duration: 3000,
+        title: `Opening ${node.name}`,
+        description: `Redirecting to GitHub: ${node.filePath}`,
+        duration: 2000,
       });
     } else {
       toast({
-        title: `${node.name}`,
-        description: `This is a ${node.type} component in your project architecture.`,
+        title: `${node.name} Component`,
+        description: `This component represents ${node.description.toLowerCase()}. GitHub URL not available for this repository.`,
         duration: 3000,
       });
     }
   };
 
-  const maxHeight = Math.max(...architectureNodes.map(node => node.position.y)) + 150;
+  const maxHeight = Math.max(...architectureNodes.map(node => node.position.y)) + 180;
+  const layerLabels = ['Presentation Layer', 'Business Logic Layer', 'Data Layer', 'Infrastructure Layer'];
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Layers className="w-5 h-5" />
-          Dynamic System Architecture
+          Advanced System Architecture
+          <Sparkles className="w-4 h-4 text-yellow-500" />
         </CardTitle>
         <CardDescription>
-          Repository-specific architecture diagram generated from your codebase - click on components to explore
+          Interactive layered architecture diagram - click components to view source code on GitHub
         </CardDescription>
       </CardHeader>
       <CardContent>
         {architectureNodes.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">No Repository Data</h3>
-            <p className="text-muted-foreground">
-              Import a repository to see its dynamic architecture diagram
+          <div className="text-center py-16">
+            <Brain className="w-20 h-20 mx-auto mb-6 text-muted-foreground opacity-50" />
+            <h3 className="text-xl font-semibold mb-3">No Repository Data</h3>
+            <p className="text-muted-foreground mb-4">
+              Import a repository to see its intelligent architecture analysis
             </p>
+            <Badge variant="outline" className="px-4 py-2">
+              <Sparkles className="w-4 h-4 mr-2" />
+              AI-Powered Analysis
+            </Badge>
           </div>
         ) : (
-          <div className="relative w-full bg-gradient-to-br from-background via-background/50 to-accent/5 rounded-lg border-2 border-border/50 overflow-hidden">
+          <div className="relative w-full bg-gradient-to-br from-background via-accent/5 to-primary/5 rounded-xl border-2 border-border/50 overflow-hidden">
+            {/* Layer Labels */}
+            <div className="absolute left-4 top-0 bottom-0 flex flex-col justify-around py-8 z-10">
+              {layerLabels.map((label, index) => (
+                <div
+                  key={label}
+                  className="writing-mode-vertical-rl text-xs font-semibold text-muted-foreground bg-background/80 px-2 py-1 rounded rotate-180"
+                  style={{ transform: `translateY(${index * 130 + 60}px)` }}
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+
             {/* Architecture Nodes */}
             <div 
-              className="relative overflow-auto"
+              className="relative overflow-auto pl-20"
               style={{ 
-                minWidth: '900px', 
+                minWidth: '1000px', 
                 minHeight: `${maxHeight}px`, 
-                height: `${Math.min(maxHeight, 600)}px` 
+                height: `${Math.min(maxHeight, 700)}px` 
               }}
             >
-              {architectureNodes.map((node) => (
-                <ArchitectureNodeComponent
-                  key={node.id}
-                  node={node}
-                  onNodeClick={handleNodeClick}
-                />
-              ))}
+              {/* Connection Lines */}
+              <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
+                {architectureNodes.map((node, index) => 
+                  architectureNodes.slice(index + 1).map((otherNode, otherIndex) => {
+                    if (Math.abs(node.position.y - otherNode.position.y) === 150) {
+                      return (
+                        <ConnectionLine
+                          key={`${node.id}-${otherNode.id}`}
+                          from={node}
+                          to={otherNode}
+                        />
+                      );
+                    }
+                    return null;
+                  })
+                )}
+              </svg>
+
+              {/* Nodes */}
+              <div style={{ zIndex: 2, position: 'relative' }}>
+                {architectureNodes.map((node) => (
+                  <ArchitectureNodeComponent
+                    key={node.id}
+                    node={node}
+                    onNodeClick={handleNodeClick}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Enhanced Legend & Stats */}
+        {/* Enhanced Legend & Analytics */}
         {architectureNodes.length > 0 && (
-          <div className="mt-6 space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="mt-8 space-y-6">
+            {/* Component Type Legend */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-50 border-2 border-blue-200 rounded"></div>
+                <div className="w-4 h-4 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded"></div>
                 <span className="text-sm font-medium">Frontend</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-purple-50 border-2 border-purple-200 rounded"></div>
-                <span className="text-sm font-medium">Components</span>
+                <div className="w-4 h-4 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded"></div>
+                <span className="text-sm font-medium">Business Logic</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-50 border-2 border-green-200 rounded"></div>
-                <span className="text-sm font-medium">Services</span>
+                <div className="w-4 h-4 bg-gradient-to-br from-cyan-50 to-cyan-100 border-2 border-cyan-300 rounded"></div>
+                <span className="text-sm font-medium">Data Layer</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gray-50 border-2 border-gray-200 rounded"></div>
+                <div className="w-4 h-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded"></div>
                 <span className="text-sm font-medium">Infrastructure</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-yellow-50 border-2 border-yellow-200 rounded"></div>
-                <span className="text-sm font-medium">Build Tools</span>
               </div>
             </div>
 
+            {/* Importance Legend */}
+            <div className="flex items-center gap-6">
+              <span className="text-sm font-medium">Component Importance:</span>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="text-xs">Critical</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <span className="text-xs">Important</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-xs">Supporting</span>
+              </div>
+            </div>
+
+            {/* Repository Insights */}
             {repositoryData && (
-              <div className="p-4 bg-accent/10 rounded-lg border">
-                <h4 className="font-semibold mb-3 flex items-center gap-2">
-                  <GitBranch className="w-4 h-4" />
-                  Repository Analysis
+              <div className="p-6 bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 rounded-xl border border-border/50">
+                <h4 className="font-bold mb-4 flex items-center gap-2">
+                  <Brain className="w-5 h-5" />
+                  AI Architecture Analysis
                 </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="flex flex-col">
-                    <span className="text-muted-foreground text-xs">Architecture Nodes</span>
-                    <span className="font-bold text-lg">{architectureNodes.length}</span>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                  <div className="text-center p-3 bg-background/50 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">{architectureNodes.length}</div>
+                    <div className="text-xs text-muted-foreground">Components</div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-muted-foreground text-xs">Total Files</span>
-                    <span className="font-bold text-lg">{repositoryData.tree?.length || 0}</span>
+                  <div className="text-center p-3 bg-background/50 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
+                      {architectureNodes.filter(n => n.importance === 'high').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Critical</div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-muted-foreground text-xs">Commits</span>
-                    <span className="font-bold text-lg">{repositoryData.commits?.length || 0}</span>
+                  <div className="text-center p-3 bg-background/50 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
+                      {repositoryData.tree?.length || 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Total Files</div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-muted-foreground text-xs">Components</span>
-                    <span className="font-bold text-lg">
-                      {architectureNodes.filter(n => n.type === 'component').length}
-                    </span>
+                  <div className="text-center p-3 bg-background/50 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
+                      {new Set(architectureNodes.flatMap(n => n.tech || [])).size}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Technologies</div>
+                  </div>
+                  <div className="text-center p-3 bg-background/50 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">4</div>
+                    <div className="text-xs text-muted-foreground">Layers</div>
                   </div>
                 </div>
               </div>
