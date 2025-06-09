@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +21,9 @@ import {
   Monitor,
   Cloud,
   Router,
-  Smartphone
+  Smartphone,
+  Folder,
+  File
 } from "lucide-react";
 
 interface SystemArchitectureDiagramProps {
@@ -32,7 +33,7 @@ interface SystemArchitectureDiagramProps {
 interface ArchitectureNode {
   id: string;
   name: string;
-  type: 'frontend' | 'backend' | 'database' | 'service' | 'config' | 'external' | 'infrastructure';
+  type: 'frontend' | 'backend' | 'database' | 'service' | 'config' | 'external' | 'infrastructure' | 'component';
   icon: React.ReactNode;
   description: string;
   filePath?: string;
@@ -40,257 +41,303 @@ interface ArchitectureNode {
   color: string;
   position: { x: number; y: number };
   tech?: string[];
+  fileCount?: number;
 }
 
-const architectureNodes: ArchitectureNode[] = [
-  // Frontend Layer (Top Row)
-  {
-    id: 'react-client',
-    name: 'React Client',
-    type: 'frontend',
-    icon: <Code className="w-4 h-4" />,
-    description: 'Main React application with TypeScript',
-    filePath: 'src/App.tsx',
-    connections: ['router', 'state-management'],
-    color: 'bg-blue-50 border-blue-200 text-blue-700',
-    position: { x: 50, y: 30 },
-    tech: ['React 18', 'TypeScript', 'Vite']
-  },
-  {
-    id: 'router',
-    name: 'React Router',
-    type: 'frontend',
-    icon: <Router className="w-4 h-4" />,
-    description: 'Client-side routing and navigation',
-    filePath: 'src/App.tsx',
-    connections: ['pages', 'protected-routes'],
-    color: 'bg-blue-50 border-blue-200 text-blue-700',
-    position: { x: 280, y: 30 },
-    tech: ['React Router DOM']
-  },
-  {
-    id: 'state-management',
-    name: 'State Management',
-    type: 'frontend',
-    icon: <Database className="w-4 h-4" />,
-    description: 'React Query for server state management',
-    filePath: 'src/App.tsx',
-    connections: ['api-client'],
-    color: 'bg-blue-50 border-blue-200 text-blue-700',
-    position: { x: 510, y: 30 },
-    tech: ['TanStack Query', 'React Context']
-  },
-  {
-    id: 'ui-system',
-    name: 'Design System',
-    type: 'frontend',
-    icon: <Layers className="w-4 h-4" />,
-    description: 'Shadcn/UI component library with Tailwind CSS',
-    filePath: 'src/components/ui/',
-    connections: ['components'],
-    color: 'bg-blue-50 border-blue-200 text-blue-700',
-    position: { x: 740, y: 30 },
-    tech: ['Shadcn/UI', 'Tailwind CSS', 'Radix UI']
-  },
-  {
-    id: 'responsive-design',
-    name: 'Responsive UI',
-    type: 'frontend',
-    icon: <Smartphone className="w-4 h-4" />,
-    description: 'Mobile-first responsive design',
-    filePath: 'src/index.css',
-    connections: [],
-    color: 'bg-blue-50 border-blue-200 text-blue-700',
-    position: { x: 970, y: 30 },
-    tech: ['CSS Grid', 'Flexbox', 'Media Queries']
-  },
+const analyzeRepositoryStructure = (repositoryData: any) => {
+  if (!repositoryData?.tree) return null;
 
-  // Application Layer (Second Row)
-  {
-    id: 'pages',
-    name: 'Page Components',
-    type: 'frontend',
-    icon: <FileText className="w-4 h-4" />,
-    description: 'Application pages and route components',
-    filePath: 'src/pages/',
-    connections: ['components', 'git-visualizer'],
-    color: 'bg-purple-50 border-purple-200 text-purple-700',
-    position: { x: 50, y: 150 },
-    tech: ['Page Routing', 'Layout Components']
-  },
-  {
-    id: 'components',
-    name: 'UI Components',
-    type: 'frontend',
-    icon: <Package className="w-4 h-4" />,
-    description: 'Reusable UI components and layouts',
-    filePath: 'src/components/',
-    connections: ['git-visualizer'],
-    color: 'bg-purple-50 border-purple-200 text-purple-700',
-    position: { x: 280, y: 150 },
-    tech: ['Component Composition', 'Props Interface']
-  },
-  {
-    id: 'git-visualizer',
-    name: 'Git Visualizer',
-    type: 'frontend',
-    icon: <GitBranch className="w-4 h-4" />,
-    description: 'Core git visualization components',
-    filePath: 'src/components/git-visualizer/',
-    connections: ['data-processing', 'charts'],
-    color: 'bg-purple-50 border-purple-200 text-purple-700',
-    position: { x: 510, y: 150 },
-    tech: ['Git Analysis', 'Data Visualization']
-  },
-  {
-    id: 'charts',
-    name: 'Chart Library',
-    type: 'frontend',
-    icon: <Monitor className="w-4 h-4" />,
-    description: 'Interactive charts and graphs',
-    filePath: 'src/components/git-visualizer/',
-    connections: [],
-    color: 'bg-purple-50 border-purple-200 text-purple-700',
-    position: { x: 740, y: 150 },
-    tech: ['Recharts', 'D3.js Integration']
-  },
-  {
-    id: 'protected-routes',
-    name: 'Route Guards',
-    type: 'frontend',
-    icon: <Shield className="w-4 h-4" />,
-    description: 'Authentication-based route protection',
-    filePath: 'src/components/ProtectedRoute.tsx',
-    connections: ['auth-service'],
-    color: 'bg-purple-50 border-purple-200 text-purple-700',
-    position: { x: 970, y: 150 },
-    tech: ['Route Protection', 'Auth Guards']
-  },
+  const analysis = {
+    hasReact: false,
+    hasTypeScript: false,
+    hasNodeJS: false,
+    hasDatabase: false,
+    hasAPI: false,
+    hasTests: false,
+    hasDocker: false,
+    hasCI: false,
+    components: [] as string[],
+    services: [] as string[],
+    configs: [] as string[],
+    styles: [] as string[],
+    assets: [] as string[],
+    docs: [] as string[],
+    packageManager: 'npm'
+  };
 
-  // Service Layer (Third Row)
-  {
-    id: 'git-service',
-    name: 'Git Service',
-    type: 'service',
-    icon: <GitBranch className="w-4 h-4" />,
-    description: 'Git repository analysis and processing',
-    filePath: 'src/services/gitService.ts',
-    connections: ['github-api', 'file-parser'],
-    color: 'bg-green-50 border-green-200 text-green-700',
-    position: { x: 50, y: 270 },
-    tech: ['Git Analysis', 'Repository Parsing']
-  },
-  {
-    id: 'auth-service',
-    name: 'Auth Service',
-    type: 'service',
-    icon: <Shield className="w-4 h-4" />,
-    description: 'Authentication and authorization logic',
-    filePath: 'src/services/authService.ts',
-    connections: ['external-auth'],
-    color: 'bg-green-50 border-green-200 text-green-700',
-    position: { x: 280, y: 270 },
-    tech: ['JWT Tokens', 'OAuth 2.0']
-  },
-  {
-    id: 'api-client',
-    name: 'HTTP Client',
-    type: 'service',
-    icon: <Server className="w-4 h-4" />,
-    description: 'HTTP client for API requests and data fetching',
-    filePath: 'src/lib/api.ts',
-    connections: ['github-api', 'caching'],
-    color: 'bg-green-50 border-green-200 text-green-700',
-    position: { x: 510, y: 270 },
-    tech: ['Fetch API', 'Axios', 'Error Handling']
-  },
-  {
-    id: 'data-processing',
-    name: 'Data Processor',
-    type: 'service',
-    icon: <Zap className="w-4 h-4" />,
-    description: 'Repository data analysis and transformation',
-    filePath: 'src/utils/dataProcessing.ts',
-    connections: ['file-parser'],
-    color: 'bg-green-50 border-green-200 text-green-700',
-    position: { x: 740, y: 270 },
-    tech: ['Data Transformation', 'Analytics Engine']
-  },
-  {
-    id: 'file-parser',
-    name: 'File Parser',
-    type: 'service',
-    icon: <FileText className="w-4 h-4" />,
-    description: 'Parse and analyze code files and structures',
-    filePath: 'src/utils/fileParser.ts',
-    connections: [],
-    color: 'bg-green-50 border-green-200 text-green-700',
-    position: { x: 970, y: 270 },
-    tech: ['AST Parsing', 'Code Analysis']
-  },
+  const fileStructure: { [key: string]: number } = {};
 
-  // Infrastructure Layer (Fourth Row)
-  {
-    id: 'github-api',
-    name: 'GitHub API',
-    type: 'external',
-    icon: <Globe className="w-4 h-4" />,
-    description: 'External GitHub REST and GraphQL APIs',
-    filePath: null,
-    connections: [],
-    color: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-    position: { x: 50, y: 390 },
-    tech: ['REST API', 'GraphQL', 'Webhooks']
-  },
-  {
-    id: 'external-auth',
-    name: 'Auth Provider',
-    type: 'external',
-    icon: <Shield className="w-4 h-4" />,
-    description: 'External authentication service (OAuth)',
-    filePath: null,
-    connections: [],
-    color: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-    position: { x: 280, y: 390 },
-    tech: ['OAuth 2.0', 'OpenID Connect']
-  },
-  {
-    id: 'caching',
-    name: 'Browser Cache',
-    type: 'infrastructure',
-    icon: <Database className="w-4 h-4" />,
-    description: 'Browser-based caching and storage',
-    filePath: null,
-    connections: [],
-    color: 'bg-gray-50 border-gray-200 text-gray-700',
-    position: { x: 510, y: 390 },
-    tech: ['LocalStorage', 'SessionStorage', 'IndexedDB']
-  },
-  {
-    id: 'build-system',
-    name: 'Build System',
-    type: 'infrastructure',
-    icon: <Settings className="w-4 h-4" />,
-    description: 'Vite build system and development server',
-    filePath: 'vite.config.ts',
-    connections: [],
-    color: 'bg-gray-50 border-gray-200 text-gray-700',
-    position: { x: 740, y: 390 },
-    tech: ['Vite', 'ESBuild', 'Hot Reload']
-  },
-  {
-    id: 'deployment',
-    name: 'Deployment',
-    type: 'infrastructure',
-    icon: <Cloud className="w-4 h-4" />,
-    description: 'Static site hosting and deployment',
-    filePath: null,
-    connections: [],
-    color: 'bg-gray-50 border-gray-200 text-gray-700',
-    position: { x: 970, y: 390 },
-    tech: ['Static Hosting', 'CDN', 'CI/CD']
+  repositoryData.tree.forEach((item: any) => {
+    const path = item.path.toLowerCase();
+    const fileName = path.split('/').pop() || '';
+    const extension = fileName.split('.').pop() || '';
+    const directory = path.split('/')[0];
+
+    // Count files in directories
+    fileStructure[directory] = (fileStructure[directory] || 0) + 1;
+
+    // Technology detection
+    if (extension === 'tsx' || extension === 'jsx' || fileName.includes('react')) {
+      analysis.hasReact = true;
+    }
+    if (extension === 'ts' || extension === 'tsx') {
+      analysis.hasTypeScript = true;
+    }
+    if (fileName === 'package.json' || fileName === 'server.js' || fileName === 'app.js') {
+      analysis.hasNodeJS = true;
+    }
+    if (fileName.includes('database') || fileName.includes('db') || extension === 'sql') {
+      analysis.hasDatabase = true;
+    }
+    if (path.includes('api') || path.includes('endpoint') || fileName.includes('api')) {
+      analysis.hasAPI = true;
+    }
+    if (path.includes('test') || path.includes('spec') || extension === 'test.js') {
+      analysis.hasTests = true;
+    }
+    if (fileName === 'dockerfile' || fileName === 'docker-compose.yml') {
+      analysis.hasDocker = true;
+    }
+    if (path.includes('.github') || fileName.includes('ci') || fileName.includes('pipeline')) {
+      analysis.hasCI = true;
+    }
+    if (fileName === 'yarn.lock') {
+      analysis.packageManager = 'yarn';
+    } else if (fileName === 'pnpm-lock.yaml') {
+      analysis.packageManager = 'pnpm';
+    }
+
+    // Categorize files
+    if (path.includes('component') || (extension === 'tsx' && !path.includes('page'))) {
+      analysis.components.push(fileName);
+    }
+    if (path.includes('service') || path.includes('lib') || path.includes('util')) {
+      analysis.services.push(fileName);
+    }
+    if (extension === 'json' || extension === 'yml' || extension === 'yaml' || extension === 'env') {
+      analysis.configs.push(fileName);
+    }
+    if (extension === 'css' || extension === 'scss' || extension === 'sass') {
+      analysis.styles.push(fileName);
+    }
+    if (path.includes('asset') || path.includes('image') || path.includes('static')) {
+      analysis.assets.push(fileName);
+    }
+    if (extension === 'md' || extension === 'txt' || path.includes('doc')) {
+      analysis.docs.push(fileName);
+    }
+  });
+
+  return { analysis, fileStructure };
+};
+
+const generateDynamicArchitecture = (repositoryData: any): ArchitectureNode[] => {
+  const result = analyzeRepositoryStructure(repositoryData);
+  if (!result) return [];
+
+  const { analysis, fileStructure } = result;
+  const nodes: ArchitectureNode[] = [];
+
+  let nodeId = 1;
+  let yOffset = 0;
+
+  // Frontend Layer
+  if (analysis.hasReact) {
+    nodes.push({
+      id: `node-${nodeId++}`,
+      name: analysis.hasTypeScript ? 'React + TypeScript' : 'React App',
+      type: 'frontend',
+      icon: <Code className="w-4 h-4" />,
+      description: `${analysis.hasTypeScript ? 'TypeScript React' : 'JavaScript React'} application`,
+      filePath: 'src/App.tsx',
+      connections: [],
+      color: 'bg-blue-50 border-blue-200 text-blue-700',
+      position: { x: 50, y: yOffset },
+      tech: analysis.hasTypeScript ? ['React', 'TypeScript'] : ['React', 'JavaScript'],
+      fileCount: fileStructure['src'] || 0
+    });
+
+    if (analysis.components.length > 0) {
+      nodes.push({
+        id: `node-${nodeId++}`,
+        name: 'UI Components',
+        type: 'component',
+        icon: <Package className="w-4 h-4" />,
+        description: `${analysis.components.length} reusable components`,
+        filePath: 'src/components/',
+        connections: [],
+        color: 'bg-purple-50 border-purple-200 text-purple-700',
+        position: { x: 320, y: yOffset },
+        tech: ['Component Library'],
+        fileCount: analysis.components.length
+      });
+    }
+
+    if (analysis.styles.length > 0) {
+      nodes.push({
+        id: `node-${nodeId++}`,
+        name: 'Styling System',
+        type: 'frontend',
+        icon: <Smartphone className="w-4 h-4" />,
+        description: `CSS/SCSS styling with ${analysis.styles.length} files`,
+        filePath: 'src/styles/',
+        connections: [],
+        color: 'bg-pink-50 border-pink-200 text-pink-700',
+        position: { x: 590, y: yOffset },
+        tech: ['CSS', 'SCSS'],
+        fileCount: analysis.styles.length
+      });
+    }
   }
-];
+
+  yOffset += 120;
+
+  // Services/Utils Layer
+  if (analysis.services.length > 0) {
+    nodes.push({
+      id: `node-${nodeId++}`,
+      name: 'Business Logic',
+      type: 'service',
+      icon: <Zap className="w-4 h-4" />,
+      description: `${analysis.services.length} service and utility files`,
+      filePath: 'src/services/',
+      connections: [],
+      color: 'bg-green-50 border-green-200 text-green-700',
+      position: { x: 50, y: yOffset },
+      tech: ['Services', 'Utilities'],
+      fileCount: analysis.services.length
+    });
+  }
+
+  if (analysis.hasAPI) {
+    nodes.push({
+      id: `node-${nodeId++}`,
+      name: 'API Layer',
+      type: 'service',
+      icon: <Server className="w-4 h-4" />,
+      description: 'API endpoints and data fetching',
+      filePath: 'src/api/',
+      connections: [],
+      color: 'bg-orange-50 border-orange-200 text-orange-700',
+      position: { x: 320, y: yOffset },
+      tech: ['REST API', 'HTTP Client']
+    });
+  }
+
+  if (analysis.hasDatabase) {
+    nodes.push({
+      id: `node-${nodeId++}`,
+      name: 'Database',
+      type: 'database',
+      icon: <Database className="w-4 h-4" />,
+      description: 'Data storage and management',
+      filePath: 'database/',
+      connections: [],
+      color: 'bg-cyan-50 border-cyan-200 text-cyan-700',
+      position: { x: 590, y: yOffset },
+      tech: ['Database', 'SQL']
+    });
+  }
+
+  yOffset += 120;
+
+  // Configuration Layer
+  if (analysis.configs.length > 0) {
+    nodes.push({
+      id: `node-${nodeId++}`,
+      name: 'Configuration',
+      type: 'config',
+      icon: <Settings className="w-4 h-4" />,
+      description: `${analysis.configs.length} configuration files`,
+      filePath: './',
+      connections: [],
+      color: 'bg-gray-50 border-gray-200 text-gray-700',
+      position: { x: 50, y: yOffset },
+      tech: ['JSON', 'YAML', 'ENV'],
+      fileCount: analysis.configs.length
+    });
+  }
+
+  // Build System
+  nodes.push({
+    id: `node-${nodeId++}`,
+    name: `Build System (${analysis.packageManager})`,
+    type: 'infrastructure',
+    icon: <Package className="w-4 h-4" />,
+    description: `Package management with ${analysis.packageManager}`,
+    filePath: 'package.json',
+    connections: [],
+    color: 'bg-yellow-50 border-yellow-200 text-yellow-700',
+    position: { x: 320, y: yOffset },
+    tech: [analysis.packageManager, 'Build Tools']
+  });
+
+  if (analysis.hasTests) {
+    nodes.push({
+      id: `node-${nodeId++}`,
+      name: 'Testing Suite',
+      type: 'infrastructure',
+      icon: <Shield className="w-4 h-4" />,
+      description: 'Automated testing and quality assurance',
+      filePath: 'tests/',
+      connections: [],
+      color: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+      position: { x: 590, y: yOffset },
+      tech: ['Unit Tests', 'Integration Tests']
+    });
+  }
+
+  yOffset += 120;
+
+  // Infrastructure Layer
+  if (analysis.hasDocker) {
+    nodes.push({
+      id: `node-${nodeId++}`,
+      name: 'Containerization',
+      type: 'infrastructure',
+      icon: <Cloud className="w-4 h-4" />,
+      description: 'Docker containerization setup',
+      filePath: 'Dockerfile',
+      connections: [],
+      color: 'bg-slate-50 border-slate-200 text-slate-700',
+      position: { x: 50, y: yOffset },
+      tech: ['Docker', 'Containers']
+    });
+  }
+
+  if (analysis.hasCI) {
+    nodes.push({
+      id: `node-${nodeId++}`,
+      name: 'CI/CD Pipeline',
+      type: 'infrastructure',
+      icon: <GitBranch className="w-4 h-4" />,
+      description: 'Continuous integration and deployment',
+      filePath: '.github/',
+      connections: [],
+      color: 'bg-indigo-50 border-indigo-200 text-indigo-700',
+      position: { x: 320, y: yOffset },
+      tech: ['GitHub Actions', 'CI/CD']
+    });
+  }
+
+  if (analysis.docs.length > 0) {
+    nodes.push({
+      id: `node-${nodeId++}`,
+      name: 'Documentation',
+      type: 'config',
+      icon: <FileText className="w-4 h-4" />,
+      description: `${analysis.docs.length} documentation files`,
+      filePath: 'README.md',
+      connections: [],
+      color: 'bg-teal-50 border-teal-200 text-teal-700',
+      position: { x: 590, y: yOffset },
+      tech: ['Markdown', 'Documentation'],
+      fileCount: analysis.docs.length
+    });
+  }
+
+  return nodes;
+};
 
 const ConnectionLine: React.FC<{ from: ArchitectureNode; to: ArchitectureNode }> = ({ from, to }) => {
   const fromX = from.position.x + 115;
@@ -330,8 +377,8 @@ const ArchitectureNodeComponent: React.FC<{
             style={{ 
               left: node.position.x, 
               top: node.position.y,
-              width: '230px',
-              height: '90px'
+              width: '240px',
+              height: '100px'
             }}
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -367,11 +414,18 @@ const ArchitectureNodeComponent: React.FC<{
                   <Badge variant="outline" className="text-xs px-2 py-0">
                     {node.type}
                   </Badge>
-                  {node.tech && (
-                    <div className="text-xs text-muted-foreground">
-                      {node.tech[0]}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {node.fileCount && (
+                      <span className="text-xs text-muted-foreground">
+                        {node.fileCount} files
+                      </span>
+                    )}
+                    {node.tech && (
+                      <div className="text-xs text-muted-foreground">
+                        {node.tech[0]}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -398,6 +452,11 @@ const ArchitectureNodeComponent: React.FC<{
                 📁 {node.filePath}
               </p>
             )}
+            {node.fileCount && (
+              <p className="text-xs text-muted-foreground">
+                📊 {node.fileCount} files
+              </p>
+            )}
           </div>
         </TooltipContent>
       </Tooltip>
@@ -408,124 +467,126 @@ const ArchitectureNodeComponent: React.FC<{
 export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps> = ({ repositoryData }) => {
   const { toast } = useToast();
 
+  const architectureNodes = useMemo(() => {
+    return generateDynamicArchitecture(repositoryData);
+  }, [repositoryData]);
+
   const handleNodeClick = (node: ArchitectureNode) => {
     if (node.filePath) {
       toast({
         title: `${node.name} Component`,
-        description: `File: ${node.filePath}\n\nIn a real implementation, this would open the code file in your editor.`,
+        description: `File: ${node.filePath}\n\nThis component contains ${node.fileCount || 'multiple'} files. In a real implementation, this would open the code file in your editor.`,
         duration: 3000,
       });
     } else {
       toast({
         title: `${node.name}`,
-        description: `This is an external service or infrastructure component that doesn't have a local file.`,
+        description: `This is a ${node.type} component in your project architecture.`,
         duration: 3000,
       });
     }
   };
 
-  const connections = architectureNodes.reduce((acc: Array<{from: ArchitectureNode, to: ArchitectureNode}>, node) => {
-    node.connections.forEach(connectionId => {
-      const connectedNode = architectureNodes.find(n => n.id === connectionId);
-      if (connectedNode) {
-        acc.push({ from: node, to: connectedNode });
-      }
-    });
-    return acc;
-  }, []);
+  const maxHeight = Math.max(...architectureNodes.map(node => node.position.y)) + 150;
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Layers className="w-5 h-5" />
-          System Architecture
+          Dynamic System Architecture
         </CardTitle>
         <CardDescription>
-          Interactive system architecture diagram - click on components to learn more about them
+          Repository-specific architecture diagram generated from your codebase - click on components to explore
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="relative w-full bg-gradient-to-br from-background via-background/50 to-accent/5 rounded-lg border-2 border-border/50 overflow-hidden">
-          {/* Connection Lines */}
-          <svg 
-            className="absolute inset-0 w-full h-full pointer-events-none" 
-            style={{ zIndex: 1, minWidth: '1250px', minHeight: '500px' }}
-            viewBox="0 0 1250 500"
-            preserveAspectRatio="xMidYMid meet"
-          >
-            {connections.map((connection, index) => (
-              <ConnectionLine
-                key={index}
-                from={connection.from}
-                to={connection.to}
-              />
-            ))}
-          </svg>
-
-          {/* Architecture Nodes */}
-          <div 
-            className="relative overflow-auto"
-            style={{ zIndex: 2, minWidth: '1250px', minHeight: '500px', height: '500px' }}
-          >
-            {architectureNodes.map((node) => (
-              <ArchitectureNodeComponent
-                key={node.id}
-                node={node}
-                onNodeClick={handleNodeClick}
-              />
-            ))}
+        {architectureNodes.length === 0 ? (
+          <div className="text-center py-12">
+            <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">No Repository Data</h3>
+            <p className="text-muted-foreground">
+              Import a repository to see its dynamic architecture diagram
+            </p>
           </div>
-        </div>
-
-        {/* Enhanced Legend */}
-        <div className="mt-6 space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-50 border-2 border-blue-200 rounded"></div>
-              <span className="text-sm font-medium">Frontend Layer</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-purple-50 border-2 border-purple-200 rounded"></div>
-              <span className="text-sm font-medium">Application Layer</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-50 border-2 border-green-200 rounded"></div>
-              <span className="text-sm font-medium">Service Layer</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-yellow-50 border-2 border-yellow-200 rounded"></div>
-              <span className="text-sm font-medium">External APIs</span>
+        ) : (
+          <div className="relative w-full bg-gradient-to-br from-background via-background/50 to-accent/5 rounded-lg border-2 border-border/50 overflow-hidden">
+            {/* Architecture Nodes */}
+            <div 
+              className="relative overflow-auto"
+              style={{ 
+                minWidth: '900px', 
+                minHeight: `${maxHeight}px`, 
+                height: `${Math.min(maxHeight, 600)}px` 
+              }}
+            >
+              {architectureNodes.map((node) => (
+                <ArchitectureNodeComponent
+                  key={node.id}
+                  node={node}
+                  onNodeClick={handleNodeClick}
+                />
+              ))}
             </div>
           </div>
+        )}
 
-          {repositoryData && (
-            <div className="p-4 bg-accent/10 rounded-lg border">
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <GitBranch className="w-4 h-4" />
-                Repository Insights
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="flex flex-col">
-                  <span className="text-muted-foreground text-xs">Total Files</span>
-                  <span className="font-bold text-lg">{repositoryData.tree?.length || 0}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-muted-foreground text-xs">Commits</span>
-                  <span className="font-bold text-lg">{repositoryData.commits?.length || 0}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-muted-foreground text-xs">Branches</span>
-                  <span className="font-bold text-lg">{repositoryData.branches?.length || 1}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-muted-foreground text-xs">Contributors</span>
-                  <span className="font-bold text-lg">{repositoryData.contributors?.length || 1}</span>
-                </div>
+        {/* Enhanced Legend & Stats */}
+        {architectureNodes.length > 0 && (
+          <div className="mt-6 space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-blue-50 border-2 border-blue-200 rounded"></div>
+                <span className="text-sm font-medium">Frontend</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-purple-50 border-2 border-purple-200 rounded"></div>
+                <span className="text-sm font-medium">Components</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-green-50 border-2 border-green-200 rounded"></div>
+                <span className="text-sm font-medium">Services</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-gray-50 border-2 border-gray-200 rounded"></div>
+                <span className="text-sm font-medium">Infrastructure</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-yellow-50 border-2 border-yellow-200 rounded"></div>
+                <span className="text-sm font-medium">Build Tools</span>
               </div>
             </div>
-          )}
-        </div>
+
+            {repositoryData && (
+              <div className="p-4 bg-accent/10 rounded-lg border">
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <GitBranch className="w-4 h-4" />
+                  Repository Analysis
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Architecture Nodes</span>
+                    <span className="font-bold text-lg">{architectureNodes.length}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Total Files</span>
+                    <span className="font-bold text-lg">{repositoryData.tree?.length || 0}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Commits</span>
+                    <span className="font-bold text-lg">{repositoryData.commits?.length || 0}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Components</span>
+                    <span className="font-bold text-lg">
+                      {architectureNodes.filter(n => n.type === 'component').length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
