@@ -38,25 +38,102 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
   if (!repositoryData?.tree) return null;
 
   const analysis = {
+    // Frontend Technologies
     hasReact: false,
+    hasVue: false,
+    hasAngular: false,
     hasTypeScript: false,
-    hasNodeJS: false,
-    hasDatabase: false,
-    hasAPI: false,
-    hasTests: false,
-    hasDocker: false,
-    hasCI: false,
     hasNextJS: false,
+    hasNuxt: false,
+    hasGatsby: false,
     hasVite: false,
+    hasWebpack: false,
+    hasParcel: false,
+    
+    // Styling & UI
     hasTailwind: false,
+    hasBootstrap: false,
+    hasStyledComponents: false,
+    hasSass: false,
+    hasLess: false,
+    hasChakraUI: false,
+    hasMaterialUI: false,
+    hasAntDesign: false,
+    
+    // Backend Technologies
+    hasNodeJS: false,
+    hasExpress: false,
+    hasKoa: false,
+    hasFastify: false,
+    hasPython: false,
+    hasDjango: false,
+    hasFlask: false,
+    hasRuby: false,
+    hasRails: false,
+    hasPhp: false,
+    hasLaravel: false,
+    hasJava: false,
+    hasSpring: false,
+    
+    // Databases
+    hasDatabase: false,
+    hasPrisma: false,
+    hasSequelize: false,
+    hasMongoose: false,
+    hasTypeORM: false,
+    hasMySQL: false,
+    hasPostgreSQL: false,
+    hasMongoDB: false,
+    hasRedis: false,
+    hasSQLite: false,
+    
+    // APIs & Services
+    hasAPI: false,
+    hasGraphQL: false,
+    hasREST: false,
+    hasWebSockets: false,
+    hasMicroservices: false,
+    hasServerless: false,
+    
+    // State Management
+    hasRedux: false,
+    hasZustand: false,
+    hasRecoil: false,
+    hasVuex: false,
+    hasPinia: false,
+    
+    // Testing
+    hasTests: false,
+    hasJest: false,
+    hasCypress: false,
+    hasPlaywright: false,
+    hasVitest: false,
+    hasTesting: false,
+    
+    // DevOps & Infrastructure
+    hasDocker: false,
+    hasKubernetes: false,
+    hasCI: false,
+    hasVercel: false,
+    hasNetlify: false,
+    hasAWS: false,
+    hasGCP: false,
+    hasAzure: false,
+    hasHeroku: false,
+    
+    // Development Tools
     hasESLint: false,
     hasPrettier: false,
-    hasWebpack: false,
-    hasRedux: false,
-    hasGraphQL: false,
+    hasHusky: false,
     hasStorybook: false,
-    hasPrisma: false,
-    hasExpress: false,
+    
+    // Additional Analysis
+    architecture: 'monolith',
+    complexity: 'simple',
+    scale: 'small',
+    patterns: [] as string[],
+    
+    // File categorization
     components: [] as string[],
     services: [] as string[],
     configs: [] as string[],
@@ -68,267 +145,560 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
   };
 
   const fileStructure: { [key: string]: number } = {};
+  let totalFiles = 0;
+  let jsFiles = 0;
+  let tsFiles = 0;
+  let componentCount = 0;
+  let serviceCount = 0;
 
   repositoryData.tree.forEach((item: any) => {
     const path = item.path.toLowerCase();
     const fileName = path.split('/').pop() || '';
     const extension = fileName.split('.').pop() || '';
     const directory = path.split('/')[0];
+    
+    totalFiles++;
 
     // Count files in directories
     fileStructure[directory] = (fileStructure[directory] || 0) + 1;
 
-    // Enhanced technology detection
-    if (extension === 'tsx' || extension === 'jsx' || fileName.includes('react')) {
+    // Enhanced technology detection with more patterns
+    
+    // Frontend Frameworks
+    if (extension === 'tsx' || extension === 'jsx' || fileName.includes('react') || path.includes('react')) {
       analysis.hasReact = true;
       analysis.framework = 'React';
     }
-    if (extension === 'ts' || extension === 'tsx') {
-      analysis.hasTypeScript = true;
+    if (fileName.includes('vue') || extension === 'vue' || path.includes('vue')) {
+      analysis.hasVue = true;
+      analysis.framework = 'Vue.js';
     }
-    if (fileName === 'package.json' || fileName === 'server.js' || fileName === 'app.js') {
-      analysis.hasNodeJS = true;
+    if (fileName.includes('angular') || path.includes('angular') || fileName === 'angular.json') {
+      analysis.hasAngular = true;
+      analysis.framework = 'Angular';
     }
-    if (fileName === 'next.config.js' || fileName === 'next.config.ts') {
+    
+    // Build Tools & Meta Frameworks
+    if (fileName === 'next.config.js' || fileName === 'next.config.ts' || path.includes('next')) {
       analysis.hasNextJS = true;
       analysis.framework = 'Next.js';
+    }
+    if (fileName === 'nuxt.config.js' || fileName === 'nuxt.config.ts') {
+      analysis.hasNuxt = true;
+      analysis.framework = 'Nuxt.js';
+    }
+    if (fileName === 'gatsby-config.js' || fileName === 'gatsby-node.js') {
+      analysis.hasGatsby = true;
+      analysis.framework = 'Gatsby';
     }
     if (fileName === 'vite.config.js' || fileName === 'vite.config.ts') {
       analysis.hasVite = true;
     }
-    if (fileName === 'tailwind.config.js' || fileName === 'tailwind.config.ts') {
+    if (fileName === 'webpack.config.js' || fileName.includes('webpack')) {
+      analysis.hasWebpack = true;
+    }
+    
+    // Languages
+    if (extension === 'ts' || extension === 'tsx') {
+      analysis.hasTypeScript = true;
+      tsFiles++;
+    }
+    if (extension === 'js' || extension === 'jsx') {
+      jsFiles++;
+    }
+    
+    // Styling Technologies
+    if (fileName === 'tailwind.config.js' || fileName === 'tailwind.config.ts' || path.includes('tailwind')) {
       analysis.hasTailwind = true;
     }
-    if (fileName === 'schema.prisma' || path.includes('prisma')) {
-      analysis.hasPrisma = true;
-      analysis.hasDatabase = true;
+    if (fileName.includes('bootstrap') || path.includes('bootstrap')) {
+      analysis.hasBootstrap = true;
+    }
+    if (fileName.includes('styled-components') || path.includes('styled')) {
+      analysis.hasStyledComponents = true;
+    }
+    if (extension === 'scss' || extension === 'sass') {
+      analysis.hasSass = true;
+    }
+    if (extension === 'less') {
+      analysis.hasLess = true;
+    }
+    
+    // Backend Technologies
+    if (fileName === 'package.json' || fileName === 'server.js' || fileName === 'app.js' || path.includes('node')) {
+      analysis.hasNodeJS = true;
     }
     if (fileName.includes('express') || path.includes('express')) {
       analysis.hasExpress = true;
     }
-    if (fileName === '.eslintrc' || fileName === 'eslint.config.js') {
-      analysis.hasESLint = true;
+    if (fileName.includes('koa') || path.includes('koa')) {
+      analysis.hasKoa = true;
     }
-    if (fileName === '.prettierrc' || fileName === 'prettier.config.js') {
-      analysis.hasPrettier = true;
+    if (extension === 'py' || fileName.includes('python')) {
+      analysis.hasPython = true;
     }
-    if (fileName === 'webpack.config.js') {
-      analysis.hasWebpack = true;
+    if (fileName.includes('django') || path.includes('django')) {
+      analysis.hasDjango = true;
     }
-    if (path.includes('redux') || path.includes('store')) {
-      analysis.hasRedux = true;
+    if (fileName.includes('flask') || path.includes('flask')) {
+      analysis.hasFlask = true;
     }
-    if (fileName.includes('graphql') || extension === 'graphql') {
-      analysis.hasGraphQL = true;
-    }
-    if (path.includes('storybook') || fileName.includes('stories')) {
-      analysis.hasStorybook = true;
-    }
-    if (fileName.includes('database') || fileName.includes('db') || extension === 'sql') {
+    
+    // Databases & ORMs
+    if (fileName === 'schema.prisma' || path.includes('prisma')) {
+      analysis.hasPrisma = true;
       analysis.hasDatabase = true;
     }
+    if (fileName.includes('sequelize') || path.includes('sequelize')) {
+      analysis.hasSequelize = true;
+      analysis.hasDatabase = true;
+    }
+    if (fileName.includes('mongoose') || path.includes('mongoose')) {
+      analysis.hasMongoose = true;
+      analysis.hasMongoDB = true;
+      analysis.hasDatabase = true;
+    }
+    if (fileName.includes('typeorm') || path.includes('typeorm')) {
+      analysis.hasTypeORM = true;
+      analysis.hasDatabase = true;
+    }
+    
+    // APIs & Communication
     if (path.includes('api') || path.includes('endpoint') || fileName.includes('api')) {
       analysis.hasAPI = true;
+      analysis.hasREST = true;
     }
-    if (path.includes('test') || path.includes('spec') || extension === 'test.js') {
+    if (fileName.includes('graphql') || extension === 'graphql' || path.includes('graphql')) {
+      analysis.hasGraphQL = true;
+    }
+    if (fileName.includes('websocket') || fileName.includes('socket') || path.includes('socket')) {
+      analysis.hasWebSockets = true;
+    }
+    
+    // State Management
+    if (path.includes('redux') || fileName.includes('redux') || path.includes('store')) {
+      analysis.hasRedux = true;
+    }
+    if (fileName.includes('zustand') || path.includes('zustand')) {
+      analysis.hasZustand = true;
+    }
+    if (fileName.includes('recoil') || path.includes('recoil')) {
+      analysis.hasRecoil = true;
+    }
+    
+    // Testing
+    if (path.includes('test') || path.includes('spec') || extension.includes('test') || extension.includes('spec')) {
       analysis.hasTests = true;
     }
-    if (fileName === 'dockerfile' || fileName === 'docker-compose.yml') {
+    if (fileName.includes('jest') || path.includes('jest')) {
+      analysis.hasJest = true;
+      analysis.hasTesting = true;
+    }
+    if (fileName.includes('cypress') || path.includes('cypress')) {
+      analysis.hasCypress = true;
+      analysis.hasTesting = true;
+    }
+    if (fileName.includes('playwright') || path.includes('playwright')) {
+      analysis.hasPlaywright = true;
+      analysis.hasTesting = true;
+    }
+    
+    // DevOps & Infrastructure
+    if (fileName === 'dockerfile' || fileName === 'docker-compose.yml' || path.includes('docker')) {
       analysis.hasDocker = true;
     }
-    if (path.includes('.github') || fileName.includes('ci') || fileName.includes('pipeline')) {
+    if (fileName.includes('kubernetes') || fileName.includes('k8s') || path.includes('k8s')) {
+      analysis.hasKubernetes = true;
+    }
+    if (path.includes('.github') || fileName.includes('ci') || fileName.includes('pipeline') || fileName.includes('workflow')) {
       analysis.hasCI = true;
     }
-
-    // Categorize files
-    if (path.includes('component') || (extension === 'tsx' && !path.includes('page'))) {
-      analysis.components.push(fileName);
+    if (fileName === 'vercel.json' || path.includes('vercel')) {
+      analysis.hasVercel = true;
     }
-    if (path.includes('service') || path.includes('lib') || path.includes('util')) {
+    if (fileName === 'netlify.toml' || path.includes('netlify')) {
+      analysis.hasNetlify = true;
+    }
+    
+    // Development Tools
+    if (fileName === '.eslintrc' || fileName === 'eslint.config.js' || fileName.includes('eslint')) {
+      analysis.hasESLint = true;
+    }
+    if (fileName === '.prettierrc' || fileName === 'prettier.config.js' || fileName.includes('prettier')) {
+      analysis.hasPrettier = true;
+    }
+    if (path.includes('storybook') || fileName.includes('stories') || fileName.includes('storybook')) {
+      analysis.hasStorybook = true;
+    }
+
+    // Categorize files for counting
+    if (path.includes('component') || (extension === 'tsx' && !path.includes('page') && !path.includes('layout'))) {
+      analysis.components.push(fileName);
+      componentCount++;
+    }
+    if (path.includes('service') || path.includes('lib') || path.includes('util') || path.includes('helper')) {
       analysis.services.push(fileName);
+      serviceCount++;
     }
     if (extension === 'json' || extension === 'yml' || extension === 'yaml' || extension === 'env') {
       analysis.configs.push(fileName);
     }
-    if (extension === 'css' || extension === 'scss' || extension === 'sass') {
+    if (extension === 'css' || extension === 'scss' || extension === 'sass' || extension === 'less') {
       analysis.styles.push(fileName);
     }
-    if (path.includes('asset') || path.includes('image') || path.includes('static')) {
+    if (path.includes('asset') || path.includes('image') || path.includes('static') || path.includes('public')) {
       analysis.assets.push(fileName);
     }
-    if (extension === 'md' || extension === 'txt' || path.includes('doc')) {
+    if (extension === 'md' || extension === 'txt' || path.includes('doc') || path.includes('readme')) {
       analysis.docs.push(fileName);
     }
   });
 
-  return { analysis, fileStructure };
+  // Determine architecture patterns
+  if (serviceCount > 10 || analysis.hasKubernetes || analysis.hasMicroservices) {
+    analysis.architecture = 'microservices';
+    analysis.patterns.push('Microservices');
+  } else if (analysis.hasAPI && analysis.hasDatabase) {
+    analysis.architecture = 'layered';
+    analysis.patterns.push('Layered Architecture');
+  }
+
+  if (analysis.hasRedux || analysis.hasZustand || analysis.hasRecoil) {
+    analysis.patterns.push('State Management');
+  }
+  
+  if (analysis.hasGraphQL) {
+    analysis.patterns.push('GraphQL API');
+  } else if (analysis.hasREST) {
+    analysis.patterns.push('REST API');
+  }
+
+  if (analysis.hasTests || analysis.hasTesting) {
+    analysis.patterns.push('Test-Driven Development');
+  }
+
+  if (analysis.hasDocker || analysis.hasKubernetes) {
+    analysis.patterns.push('Containerization');
+  }
+
+  // Determine complexity
+  if (totalFiles > 100 || componentCount > 20 || serviceCount > 10) {
+    analysis.complexity = 'complex';
+    analysis.scale = 'large';
+  } else if (totalFiles > 50 || componentCount > 10) {
+    analysis.complexity = 'moderate';
+    analysis.scale = 'medium';
+  }
+
+  return { analysis, fileStructure, stats: { totalFiles, jsFiles, tsFiles, componentCount, serviceCount } };
 };
 
-const generateMermaidDiagram = (repositoryData: any): string => {
+const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
   const result = analyzeRepositoryStructure(repositoryData);
   if (!result) return '';
 
   const { analysis } = result;
 
-  let mermaidCode = 'graph TD\n';
-  
-  // Define styles
-  mermaidCode += '    classDef frontend fill:#e1f5fe,stroke:#01579b,stroke-width:2px\n';
-  mermaidCode += '    classDef backend fill:#f3e5f5,stroke:#4a148c,stroke-width:2px\n';
-  mermaidCode += '    classDef database fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px\n';
-  mermaidCode += '    classDef config fill:#fff3e0,stroke:#ef6c00,stroke-width:2px\n';
-  mermaidCode += '    classDef infrastructure fill:#fce4ec,stroke:#c2185b,stroke-width:2px\n\n';
+  // Create a comprehensive architecture diagram
+  let mermaidCode = `flowchart TB
+    %% Define comprehensive styles for better visual hierarchy
+    classDef userLayer fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#0d47a1
+    classDef frontendLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c
+    classDef backendLayer fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#1b5e20
+    classDef dataLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#e65100
+    classDef infraLayer fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#880e4f
+    classDef apiLayer fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#004d40
+    classDef toolLayer fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#33691e
+    classDef securityLayer fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#b71c1c
+
+`;
 
   let nodeId = 1;
   const nodes: { [key: string]: string } = {};
 
-  // Frontend Layer
-  if (analysis.hasReact || analysis.hasNextJS) {
-    const mainFramework = analysis.hasNextJS ? 'Next.js' : 'React';
-    const nodeKey = `A${nodeId++}`;
-    nodes['frontend'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["Frontend ${mainFramework}"]:::frontend\n`;
+  // User Layer
+  const userNode = `U${nodeId++}`;
+  nodes['user'] = userNode;
+  mermaidCode += `    ${userNode}["👥 Users"]:::userLayer\n`;
+
+  // Frontend Layer - More sophisticated detection
+  if (analysis.hasReact || analysis.hasVue || analysis.hasAngular || analysis.hasNextJS) {
+    const frontendNode = `F${nodeId++}`;
+    nodes['frontend'] = frontendNode;
+    
+    let frontendTech = 'Frontend';
+    if (analysis.hasNextJS) frontendTech = '⚡ Next.js App';
+    else if (analysis.hasReact) frontendTech = '⚛️ React App';
+    else if (analysis.hasVue) frontendTech = '💚 Vue.js App';
+    else if (analysis.hasAngular) frontendTech = '🅰️ Angular App';
+    
+    mermaidCode += `    ${frontendNode}["${frontendTech}"]:::frontendLayer\n`;
   }
 
-  if (analysis.components.length > 0) {
-    const nodeKey = `A${nodeId++}`;
-    nodes['components'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["Components ${analysis.components.length}"]:::frontend\n`;
+  // UI/Styling Layer
+  if (analysis.hasTailwind || analysis.hasBootstrap || analysis.hasStyledComponents || analysis.styles.length > 0) {
+    const stylingNode = `S${nodeId++}`;
+    nodes['styling'] = stylingNode;
+    
+    let stylingTech = '🎨 Styling';
+    if (analysis.hasTailwind) stylingTech = '🎨 Tailwind CSS';
+    else if (analysis.hasBootstrap) stylingTech = '🎨 Bootstrap';
+    else if (analysis.hasStyledComponents) stylingTech = '🎨 Styled Components';
+    
+    mermaidCode += `    ${stylingNode}["${stylingTech}"]:::frontendLayer\n`;
   }
 
-  if (analysis.hasTailwind || analysis.styles.length > 0) {
-    const nodeKey = `A${nodeId++}`;
-    nodes['styles'] = nodeKey;
-    const tech = analysis.hasTailwind ? 'Tailwind CSS' : 'CSS';
-    mermaidCode += `    ${nodeKey}["Styles ${tech}"]:::frontend\n`;
+  // State Management
+  if (analysis.hasRedux || analysis.hasZustand || analysis.hasRecoil) {
+    const stateNode = `ST${nodeId++}`;
+    nodes['state'] = stateNode;
+    
+    let stateTech = '🔄 State Management';
+    if (analysis.hasRedux) stateTech = '🔄 Redux Store';
+    else if (analysis.hasZustand) stateTech = '🔄 Zustand Store';
+    else if (analysis.hasRecoil) stateTech = '🔄 Recoil State';
+    
+    mermaidCode += `    ${stateNode}["${stateTech}"]:::frontendLayer\n`;
   }
 
-  // Backend Layer
-  if (analysis.hasNodeJS || analysis.hasExpress) {
-    const nodeKey = `B${nodeId++}`;
-    nodes['backend'] = nodeKey;
-    const tech = analysis.hasExpress ? 'Express.js' : 'Node.js';
-    mermaidCode += `    ${nodeKey}["Backend ${tech}"]:::backend\n`;
+  // API Gateway/Layer
+  if (analysis.hasAPI || analysis.hasGraphQL) {
+    const apiNode = `A${nodeId++}`;
+    nodes['api'] = apiNode;
+    
+    let apiTech = '🌐 API Layer';
+    if (analysis.hasGraphQL) apiTech = '🌐 GraphQL API';
+    else if (analysis.hasREST) apiTech = '🌐 REST API';
+    
+    mermaidCode += `    ${apiNode}["${apiTech}"]:::apiLayer\n`;
   }
 
-  if (analysis.hasAPI) {
-    const nodeKey = `B${nodeId++}`;
-    nodes['api'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["REST API"]:::backend\n`;
+  // Backend Services
+  if (analysis.hasNodeJS || analysis.hasExpress || analysis.hasPython || analysis.hasJava) {
+    const backendNode = `B${nodeId++}`;
+    nodes['backend'] = backendNode;
+    
+    let backendTech = '⚙️ Backend Services';
+    if (analysis.hasExpress) backendTech = '⚙️ Express.js Server';
+    else if (analysis.hasKoa) backendTech = '⚙️ Koa.js Server';
+    else if (analysis.hasDjango) backendTech = '⚙️ Django Server';
+    else if (analysis.hasFlask) backendTech = '⚙️ Flask Server';
+    else if (analysis.hasNodeJS) backendTech = '⚙️ Node.js Server';
+    
+    mermaidCode += `    ${backendNode}["${backendTech}"]:::backendLayer\n`;
   }
 
-  if (analysis.hasGraphQL) {
-    const nodeKey = `B${nodeId++}`;
-    nodes['graphql'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["GraphQL"]:::backend\n`;
-  }
-
+  // Business Logic/Services
   if (analysis.services.length > 0) {
-    const nodeKey = `B${nodeId++}`;
-    nodes['services'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["Services ${analysis.services.length}"]:::backend\n`;
+    const servicesNode = `SV${nodeId++}`;
+    nodes['services'] = servicesNode;
+    mermaidCode += `    ${servicesNode}["🔧 Business Logic<br/>(${analysis.services.length} services)"]:::backendLayer\n`;
   }
 
-  // Database Layer
-  if (analysis.hasPrisma) {
-    const nodeKey = `D${nodeId++}`;
-    nodes['prisma'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["Prisma ORM"]:::database\n`;
+  // Database Layer with ORM
+  if (analysis.hasPrisma || analysis.hasSequelize || analysis.hasTypeORM || analysis.hasMongoose) {
+    const ormNode = `O${nodeId++}`;
+    nodes['orm'] = ormNode;
+    
+    let ormTech = '🗃️ ORM Layer';
+    if (analysis.hasPrisma) ormTech = '🗃️ Prisma ORM';
+    else if (analysis.hasSequelize) ormTech = '🗃️ Sequelize ORM';
+    else if (analysis.hasTypeORM) ormTech = '🗃️ TypeORM';
+    else if (analysis.hasMongoose) ormTech = '🗃️ Mongoose ODM';
+    
+    mermaidCode += `    ${ormNode}["${ormTech}"]:::dataLayer\n`;
   }
 
-  if (analysis.hasDatabase) {
-    const nodeKey = `D${nodeId++}`;
-    nodes['database'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["Database"]:::database\n`;
+  // Database
+  if (analysis.hasDatabase || analysis.hasMongoDB || analysis.hasMySQL || analysis.hasPostgreSQL) {
+    const dbNode = `DB${nodeId++}`;
+    nodes['database'] = dbNode;
+    
+    let dbTech = '🗄️ Database';
+    if (analysis.hasMongoDB) dbTech = '🗄️ MongoDB';
+    else if (analysis.hasMySQL) dbTech = '🗄️ MySQL';
+    else if (analysis.hasPostgreSQL) dbTech = '🗄️ PostgreSQL';
+    
+    mermaidCode += `    ${dbNode}["${dbTech}"]:::dataLayer\n`;
   }
 
-  if (analysis.hasRedux) {
-    const nodeKey = `D${nodeId++}`;
-    nodes['redux'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["Redux Store"]:::database\n`;
+  // Caching Layer
+  if (analysis.hasRedis) {
+    const cacheNode = `C${nodeId++}`;
+    nodes['cache'] = cacheNode;
+    mermaidCode += `    ${cacheNode}["⚡ Redis Cache"]:::dataLayer\n`;
   }
 
-  // Infrastructure Layer
-  if (analysis.hasVite || analysis.hasWebpack) {
-    const nodeKey = `I${nodeId++}`;
-    nodes['build'] = nodeKey;
-    const tool = analysis.hasVite ? 'Vite' : 'Webpack';
-    mermaidCode += `    ${nodeKey}["Build ${tool}"]:::infrastructure\n`;
+  // Build Tools
+  if (analysis.hasVite || analysis.hasWebpack || analysis.hasParcel) {
+    const buildNode = `BT${nodeId++}`;
+    nodes['build'] = buildNode;
+    
+    let buildTech = '🔨 Build Tools';
+    if (analysis.hasVite) buildTech = '⚡ Vite';
+    else if (analysis.hasWebpack) buildTech = '📦 Webpack';
+    else if (analysis.hasParcel) buildTech = '📦 Parcel';
+    
+    mermaidCode += `    ${buildNode}["${buildTech}"]:::toolLayer\n`;
   }
 
-  if (analysis.hasDocker) {
-    const nodeKey = `I${nodeId++}`;
-    nodes['docker'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["Docker"]:::infrastructure\n`;
+  // Testing Infrastructure
+  if (analysis.hasTests || analysis.hasTesting) {
+    const testNode = `T${nodeId++}`;
+    nodes['testing'] = testNode;
+    
+    let testTech = '🧪 Testing';
+    if (analysis.hasJest) testTech = '🧪 Jest Testing';
+    else if (analysis.hasCypress) testTech = '🧪 Cypress E2E';
+    else if (analysis.hasPlaywright) testTech = '🧪 Playwright Testing';
+    
+    mermaidCode += `    ${testNode}["${testTech}"]:::toolLayer\n`;
   }
 
+  // DevOps & Infrastructure
+  if (analysis.hasDocker || analysis.hasKubernetes) {
+    const infraNode = `I${nodeId++}`;
+    nodes['infrastructure'] = infraNode;
+    
+    let infraTech = '🐳 Infrastructure';
+    if (analysis.hasKubernetes) infraTech = '☸️ Kubernetes';
+    else if (analysis.hasDocker) infraTech = '🐳 Docker';
+    
+    mermaidCode += `    ${infraNode}["${infraTech}"]:::infraLayer\n`;
+  }
+
+  // CI/CD Pipeline
   if (analysis.hasCI) {
-    const nodeKey = `I${nodeId++}`;
-    nodes['ci'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["CI/CD"]:::infrastructure\n`;
+    const ciNode = `CI${nodeId++}`;
+    nodes['cicd'] = ciNode;
+    mermaidCode += `    ${ciNode}["🚀 CI/CD Pipeline"]:::infraLayer\n`;
   }
 
-  if (analysis.hasTests) {
-    const nodeKey = `I${nodeId++}`;
-    nodes['tests'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["Testing"]:::infrastructure\n`;
-  }
-
-  // Config Layer
+  // Security Layer
   if (analysis.hasESLint || analysis.hasPrettier) {
-    const nodeKey = `C${nodeId++}`;
-    nodes['linting'] = nodeKey;
-    const tools = [];
-    if (analysis.hasESLint) tools.push('ESLint');
-    if (analysis.hasPrettier) tools.push('Prettier');
-    mermaidCode += `    ${nodeKey}["Config ${tools.join(' + ')}"]:::config\n`;
+    const securityNode = `SEC${nodeId++}`;
+    nodes['security'] = securityNode;
+    mermaidCode += `    ${securityNode}["🔒 Code Quality<br/>ESLint • Prettier"]:::securityLayer\n`;
   }
 
-  // Add connections
-  mermaidCode += '\n    %% Connections\n';
+  // Documentation
+  if (analysis.hasStorybook || analysis.docs.length > 0) {
+    const docsNode = `DOC${nodeId++}`;
+    nodes['docs'] = docsNode;
+    
+    let docsTech = '📚 Documentation';
+    if (analysis.hasStorybook) docsTech = '📚 Storybook';
+    
+    mermaidCode += `    ${docsNode}["${docsTech}"]:::toolLayer\n`;
+  }
+
+  // Add sophisticated connections with data flow
+  mermaidCode += '\n    %% Data Flow Connections\n';
   
-  if (nodes['frontend'] && nodes['components']) {
-    mermaidCode += `    ${nodes['frontend']} --> ${nodes['components']}\n`;
+  // User to Frontend
+  if (nodes['user'] && nodes['frontend']) {
+    mermaidCode += `    ${nodes['user']} -->|"HTTP Requests"| ${nodes['frontend']}\n`;
   }
   
-  if (nodes['frontend'] && nodes['styles']) {
-    mermaidCode += `    ${nodes['frontend']} --> ${nodes['styles']}\n`;
+  // Frontend connections
+  if (nodes['frontend']) {
+    if (nodes['styling']) {
+      mermaidCode += `    ${nodes['frontend']} -.->|"Styling"| ${nodes['styling']}\n`;
+    }
+    if (nodes['state']) {
+      mermaidCode += `    ${nodes['frontend']} <-->|"State Updates"| ${nodes['state']}\n`;
+    }
+    if (nodes['api']) {
+      mermaidCode += `    ${nodes['frontend']} <-->|"API Calls"| ${nodes['api']}\n`;
+    }
   }
   
-  if (nodes['frontend'] && nodes['api']) {
-    mermaidCode += `    ${nodes['frontend']} --> ${nodes['api']}\n`;
+  // API to Backend
+  if (nodes['api'] && nodes['backend']) {
+    mermaidCode += `    ${nodes['api']} <-->|"Business Logic"| ${nodes['backend']}\n`;
   }
   
-  if (nodes['api'] && nodes['services']) {
-    mermaidCode += `    ${nodes['api']} --> ${nodes['services']}\n`;
+  // Backend to Services
+  if (nodes['backend'] && nodes['services']) {
+    mermaidCode += `    ${nodes['backend']} -->|"Service Calls"| ${nodes['services']}\n`;
   }
   
-  if (nodes['services'] && nodes['database']) {
-    mermaidCode += `    ${nodes['services']} --> ${nodes['database']}\n`;
+  // Services to ORM
+  if (nodes['services'] && nodes['orm']) {
+    mermaidCode += `    ${nodes['services']} <-->|"Data Queries"| ${nodes['orm']}\n`;
   }
   
-  if (nodes['prisma'] && nodes['database']) {
-    mermaidCode += `    ${nodes['prisma']} --> ${nodes['database']}\n`;
+  // ORM to Database
+  if (nodes['orm'] && nodes['database']) {
+    mermaidCode += `    ${nodes['orm']} <-->|"SQL/NoSQL"| ${nodes['database']}\n`;
   }
   
-  if (nodes['backend'] && nodes['api']) {
-    mermaidCode += `    ${nodes['backend']} --> ${nodes['api']}\n`;
+  // Direct Backend to Database (if no ORM)
+  if (nodes['backend'] && nodes['database'] && !nodes['orm']) {
+    mermaidCode += `    ${nodes['backend']} <-->|"Direct DB Access"| ${nodes['database']}\n`;
   }
   
+  // Cache connections
+  if (nodes['cache']) {
+    if (nodes['backend']) {
+      mermaidCode += `    ${nodes['backend']} <-->|"Cache Layer"| ${nodes['cache']}\n`;
+    }
+    if (nodes['api']) {
+      mermaidCode += `    ${nodes['api']} <-->|"Response Cache"| ${nodes['cache']}\n`;
+    }
+  }
+  
+  // Build tools
   if (nodes['build'] && nodes['frontend']) {
-    mermaidCode += `    ${nodes['build']} --> ${nodes['frontend']}\n`;
+    mermaidCode += `    ${nodes['build']} -.->|"Builds"| ${nodes['frontend']}\n`;
   }
   
-  if (nodes['docker'] && nodes['backend']) {
-    mermaidCode += `    ${nodes['docker']} --> ${nodes['backend']}\n`;
+  // Testing connections
+  if (nodes['testing']) {
+    if (nodes['frontend']) {
+      mermaidCode += `    ${nodes['testing']} -.->|"Tests"| ${nodes['frontend']}\n`;
+    }
+    if (nodes['backend']) {
+      mermaidCode += `    ${nodes['testing']} -.->|"Tests"| ${nodes['backend']}\n`;
+    }
   }
   
-  if (nodes['tests'] && nodes['frontend']) {
-    mermaidCode += `    ${nodes['tests']} --> ${nodes['frontend']}\n`;
+  // Infrastructure connections
+  if (nodes['infrastructure']) {
+    if (nodes['backend']) {
+      mermaidCode += `    ${nodes['infrastructure']} -.->|"Containerizes"| ${nodes['backend']}\n`;
+    }
+    if (nodes['database']) {
+      mermaidCode += `    ${nodes['infrastructure']} -.->|"Hosts"| ${nodes['database']}\n`;
+    }
   }
   
-  if (nodes['tests'] && nodes['backend']) {
-    mermaidCode += `    ${nodes['tests']} --> ${nodes['backend']}\n`;
+  // CI/CD connections
+  if (nodes['cicd']) {
+    if (nodes['build']) {
+      mermaidCode += `    ${nodes['cicd']} -.->|"Automated Build"| ${nodes['build']}\n`;
+    }
+    if (nodes['testing']) {
+      mermaidCode += `    ${nodes['cicd']} -.->|"Runs Tests"| ${nodes['testing']}\n`;
+    }
+    if (nodes['infrastructure']) {
+      mermaidCode += `    ${nodes['cicd']} -.->|"Deploys"| ${nodes['infrastructure']}\n`;
+    }
+  }
+  
+  // Security/Quality connections
+  if (nodes['security']) {
+    if (nodes['frontend']) {
+      mermaidCode += `    ${nodes['security']} -.->|"Code Quality"| ${nodes['frontend']}\n`;
+    }
+    if (nodes['backend']) {
+      mermaidCode += `    ${nodes['security']} -.->|"Code Quality"| ${nodes['backend']}\n`;
+    }
+  }
+  
+  // Documentation connections
+  if (nodes['docs'] && nodes['frontend']) {
+    mermaidCode += `    ${nodes['docs']} -.->|"Documents"| ${nodes['frontend']}\n`;
   }
 
   return mermaidCode;
@@ -357,7 +727,7 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
   const [diagramId] = useState(() => `mermaid-${Date.now()}`);
 
   const mermaidDiagram = useMemo(() => {
-    return generateMermaidDiagram(repositoryData);
+    return generateAdvancedMermaidDiagram(repositoryData);
   }, [repositoryData]);
 
   const architectureAnalysis = useMemo(() => {
@@ -367,12 +737,21 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
 
   useEffect(() => {
     if (mermaidDiagram && mermaidRef.current) {
-      // Initialize mermaid with proper configuration
+      // Initialize mermaid with enhanced configuration
       mermaid.initialize({
         startOnLoad: false,
         theme: 'base',
         securityLevel: 'loose',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        flowchart: {
+          htmlLabels: true,
+          curve: 'basis',
+          padding: 20,
+          nodeSpacing: 50,
+          rankSpacing: 80,
+          diagramPadding: 20,
+          useMaxWidth: true,
+        },
         themeVariables: {
           primaryColor: '#f0f9ff',
           primaryTextColor: '#1e293b',
@@ -382,7 +761,11 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
           altSectionBkgColor: '#e2e8f0',
           gridColor: '#e2e8f0',
           secondaryColor: '#fef3c7',
-          tertiaryColor: '#f0fdf4'
+          tertiaryColor: '#f0fdf4',
+          background: '#ffffff',
+          mainBkg: '#ffffff',
+          secondBkg: '#f8fafc',
+          tertiaryBkg: '#f1f5f9'
         }
       });
 
@@ -397,11 +780,16 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
         }
       }).catch((error) => {
         console.error('Mermaid rendering error:', error);
+        console.log('Mermaid diagram code:', mermaidDiagram);
         if (mermaidRef.current) {
           mermaidRef.current.innerHTML = `
             <div class="text-center text-red-500 p-8">
-              <p>Error rendering diagram</p>
-              <p class="text-sm">Please check the console for details</p>
+              <p class="font-semibold">Error rendering diagram</p>
+              <p class="text-sm mt-2">Check console for details</p>
+              <details class="mt-4 text-left">
+                <summary class="cursor-pointer">View diagram code</summary>
+                <pre class="mt-2 p-4 bg-gray-100 text-xs overflow-auto">${mermaidDiagram}</pre>
+              </details>
             </div>
           `;
         }
@@ -447,9 +835,10 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
       // Clone the SVG to avoid modifying the original
       const clonedSvg = svgElement.cloneNode(true) as SVGElement;
       
-      // Set proper dimensions
-      clonedSvg.setAttribute('width', '800');
-      clonedSvg.setAttribute('height', '600');
+      // Set proper dimensions for download
+      clonedSvg.setAttribute('width', '1200');
+      clonedSvg.setAttribute('height', '800');
+      clonedSvg.setAttribute('viewBox', clonedSvg.getAttribute('viewBox') || '0 0 1200 800');
       
       const svgData = new XMLSerializer().serializeToString(clonedSvg);
       const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
@@ -486,7 +875,7 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
           <Sparkles className="w-4 h-4 text-yellow-500" />
         </CardTitle>
         <CardDescription>
-          Interactive Mermaid.js architecture diagram - dynamically generated from repository analysis
+          Advanced Mermaid.js architecture visualization - intelligently generated from deep repository analysis
         </CardDescription>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={downloadDiagram} disabled={!mermaidLoaded}>
@@ -501,23 +890,23 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
             <Brain className="w-20 h-20 mx-auto mb-6 text-muted-foreground opacity-50" />
             <h3 className="text-xl font-semibold mb-3">No Repository Data</h3>
             <p className="text-muted-foreground mb-4">
-              Import a repository to see its system architecture diagram
+              Import a repository to see its intelligent system architecture diagram
             </p>
             <Badge variant="outline" className="px-4 py-2">
               <Sparkles className="w-4 h-4 mr-2" />
-              Powered by Mermaid.js
+              Powered by Advanced Mermaid.js
             </Badge>
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Mermaid Diagram */}
+            {/* Enhanced Mermaid Diagram */}
             <div className="relative w-full bg-gradient-to-br from-background via-accent/5 to-primary/5 rounded-xl border-2 border-border/50 p-6 overflow-auto">
-              <div ref={mermaidRef} className="flex justify-center min-h-[400px] items-center" />
+              <div ref={mermaidRef} className="flex justify-center min-h-[500px] items-center" />
               {!mermaidLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                    <p className="text-sm text-muted-foreground">Generating diagram...</p>
+                    <p className="text-sm text-muted-foreground">Generating advanced architecture diagram...</p>
                   </div>
                 </div>
               )}
@@ -553,19 +942,25 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
               </div>
             )}
 
-            {/* Repository Insights */}
+            {/* Enhanced Repository Insights */}
             {repositoryData && architectureAnalysis && (
               <div className="p-6 bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 rounded-xl border border-border/50">
                 <h4 className="font-bold mb-4 flex items-center gap-2">
                   <Brain className="w-5 h-5" />
-                  Architecture Analysis
+                  Advanced Architecture Analysis
                 </h4>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                   <div className="text-center p-3 bg-background/50 rounded-lg">
                     <div className="text-2xl font-bold text-primary">
                       {architectureAnalysis.framework}
                     </div>
                     <div className="text-xs text-muted-foreground">Framework</div>
+                  </div>
+                  <div className="text-center p-3 bg-background/50 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
+                      {architectureAnalysis.architecture}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Architecture</div>
                   </div>
                   <div className="text-center p-3 bg-background/50 rounded-lg">
                     <div className="text-2xl font-bold text-primary">
@@ -587,36 +982,72 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
                   </div>
                   <div className="text-center p-3 bg-background/50 rounded-lg">
                     <div className="text-2xl font-bold text-primary">
-                      {[
-                        architectureAnalysis.hasDatabase && 'DB',
-                        architectureAnalysis.hasAPI && 'API',
-                        architectureAnalysis.hasTests && 'Tests',
-                        architectureAnalysis.hasDocker && 'Docker'
-                      ].filter(Boolean).length}
+                      {architectureAnalysis.complexity}
                     </div>
-                    <div className="text-xs text-muted-foreground">Features</div>
+                    <div className="text-xs text-muted-foreground">Complexity</div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Technology Stack */}
+            {/* Enhanced Technology Stack with Patterns */}
             {architectureAnalysis && (
-              <div className="space-y-4">
-                <h4 className="font-semibold">Technology Stack</h4>
-                <div className="flex flex-wrap gap-2">
-                  {architectureAnalysis.hasReact && <Badge variant="secondary">React</Badge>}
-                  {architectureAnalysis.hasNextJS && <Badge variant="secondary">Next.js</Badge>}
-                  {architectureAnalysis.hasTypeScript && <Badge variant="secondary">TypeScript</Badge>}
-                  {architectureAnalysis.hasNodeJS && <Badge variant="secondary">Node.js</Badge>}
-                  {architectureAnalysis.hasTailwind && <Badge variant="secondary">Tailwind CSS</Badge>}
-                  {architectureAnalysis.hasPrisma && <Badge variant="secondary">Prisma</Badge>}
-                  {architectureAnalysis.hasVite && <Badge variant="secondary">Vite</Badge>}
-                  {architectureAnalysis.hasRedux && <Badge variant="secondary">Redux</Badge>}
-                  {architectureAnalysis.hasGraphQL && <Badge variant="secondary">GraphQL</Badge>}
-                  {architectureAnalysis.hasDocker && <Badge variant="secondary">Docker</Badge>}
-                  {architectureAnalysis.hasESLint && <Badge variant="secondary">ESLint</Badge>}
-                  {architectureAnalysis.hasPrettier && <Badge variant="secondary">Prettier</Badge>}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-semibold mb-3">Architecture Patterns</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {architectureAnalysis.patterns.map((pattern, index) => (
+                      <Badge key={index} variant="default" className="bg-gradient-to-r from-primary to-primary/80">
+                        {pattern}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-semibold mb-3">Technology Stack</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Frontend Technologies */}
+                    <div className="space-y-2">
+                      <h5 className="text-sm font-medium text-muted-foreground">Frontend</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {architectureAnalysis.hasReact && <Badge variant="secondary">React</Badge>}
+                        {architectureAnalysis.hasNextJS && <Badge variant="secondary">Next.js</Badge>}
+                        {architectureAnalysis.hasVue && <Badge variant="secondary">Vue.js</Badge>}
+                        {architectureAnalysis.hasAngular && <Badge variant="secondary">Angular</Badge>}
+                        {architectureAnalysis.hasTypeScript && <Badge variant="secondary">TypeScript</Badge>}
+                        {architectureAnalysis.hasTailwind && <Badge variant="secondary">Tailwind CSS</Badge>}
+                        {architectureAnalysis.hasStyledComponents && <Badge variant="secondary">Styled Components</Badge>}
+                      </div>
+                    </div>
+                    
+                    {/* Backend Technologies */}
+                    <div className="space-y-2">
+                      <h5 className="text-sm font-medium text-muted-foreground">Backend</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {architectureAnalysis.hasNodeJS && <Badge variant="secondary">Node.js</Badge>}
+                        {architectureAnalysis.hasExpress && <Badge variant="secondary">Express.js</Badge>}
+                        {architectureAnalysis.hasPython && <Badge variant="secondary">Python</Badge>}
+                        {architectureAnalysis.hasDjango && <Badge variant="secondary">Django</Badge>}
+                        {architectureAnalysis.hasFlask && <Badge variant="secondary">Flask</Badge>}
+                        {architectureAnalysis.hasGraphQL && <Badge variant="secondary">GraphQL</Badge>}
+                      </div>
+                    </div>
+                    
+                    {/* Infrastructure */}
+                    <div className="space-y-2">
+                      <h5 className="text-sm font-medium text-muted-foreground">Infrastructure</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {architectureAnalysis.hasPrisma && <Badge variant="secondary">Prisma</Badge>}
+                        {architectureAnalysis.hasDocker && <Badge variant="secondary">Docker</Badge>}
+                        {architectureAnalysis.hasKubernetes && <Badge variant="secondary">Kubernetes</Badge>}
+                        {architectureAnalysis.hasVite && <Badge variant="secondary">Vite</Badge>}
+                        {architectureAnalysis.hasRedux && <Badge variant="secondary">Redux</Badge>}
+                        {architectureAnalysis.hasJest && <Badge variant="secondary">Jest</Badge>}
+                        {architectureAnalysis.hasCypress && <Badge variant="secondary">Cypress</Badge>}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
