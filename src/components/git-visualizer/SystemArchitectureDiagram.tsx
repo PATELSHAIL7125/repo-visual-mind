@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +26,10 @@ import {
   Folder,
   File,
   Brain,
-  Sparkles
+  Sparkles,
+  Download
 } from "lucide-react";
+import mermaid from 'mermaid';
 
 interface SystemArchitectureDiagramProps {
   repositoryData?: any;
@@ -70,6 +72,8 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     hasRedux: false,
     hasGraphQL: false,
     hasStorybook: false,
+    hasPrisma: false,
+    hasExpress: false,
     components: [] as string[],
     services: [] as string[],
     configs: [] as string[],
@@ -112,6 +116,13 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     if (fileName === 'tailwind.config.js' || fileName === 'tailwind.config.ts') {
       analysis.hasTailwind = true;
     }
+    if (fileName === 'schema.prisma' || path.includes('prisma')) {
+      analysis.hasPrisma = true;
+      analysis.hasDatabase = true;
+    }
+    if (fileName.includes('express') || path.includes('express')) {
+      analysis.hasExpress = true;
+    }
     if (fileName === '.eslintrc' || fileName === 'eslint.config.js') {
       analysis.hasESLint = true;
     }
@@ -145,11 +156,6 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     if (path.includes('.github') || fileName.includes('ci') || fileName.includes('pipeline')) {
       analysis.hasCI = true;
     }
-    if (fileName === 'yarn.lock') {
-      analysis.packageManager = 'yarn';
-    } else if (fileName === 'pnpm-lock.yaml') {
-      analysis.packageManager = 'pnpm';
-    }
 
     // Categorize files
     if (path.includes('component') || (extension === 'tsx' && !path.includes('page'))) {
@@ -175,601 +181,372 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
   return { analysis, fileStructure };
 };
 
-const generateAdvancedArchitecture = (repositoryData: any): ArchitectureNode[] => {
+const generateMermaidDiagram = (repositoryData: any): string => {
   const result = analyzeRepositoryStructure(repositoryData);
-  if (!result) return [];
+  if (!result) return '';
 
-  const { analysis, fileStructure } = result;
-  const nodes: ArchitectureNode[] = [];
-  const baseUrl = repositoryData?.info?.githubUrl || '';
+  const { analysis } = result;
+
+  let mermaidCode = 'graph TD\n';
+  
+  // Define styles
+  mermaidCode += '    classDef frontend fill:#e1f5fe,stroke:#01579b,stroke-width:2px\n';
+  mermaidCode += '    classDef backend fill:#f3e5f5,stroke:#4a148c,stroke-width:2px\n';
+  mermaidCode += '    classDef database fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px\n';
+  mermaidCode += '    classDef config fill:#fff3e0,stroke:#ef6c00,stroke-width:2px\n';
+  mermaidCode += '    classDef infrastructure fill:#fce4ec,stroke:#c2185b,stroke-width:2px\n\n';
 
   let nodeId = 1;
+  const nodes: { [key: string]: string } = {};
 
-  // Create a more sophisticated layout
-  const layers = {
-    presentation: { y: 50, nodes: [] as ArchitectureNode[] },
-    business: { y: 200, nodes: [] as ArchitectureNode[] },
-    data: { y: 350, nodes: [] as ArchitectureNode[] },
-    infrastructure: { y: 500, nodes: [] as ArchitectureNode[] }
-  };
-
-  // Presentation Layer
+  // Frontend Layer
   if (analysis.hasReact || analysis.hasNextJS) {
     const mainFramework = analysis.hasNextJS ? 'Next.js' : 'React';
-    const tech = [mainFramework];
-    if (analysis.hasTypeScript) tech.push('TypeScript');
-    if (analysis.hasTailwind) tech.push('Tailwind CSS');
-
-    layers.presentation.nodes.push({
-      id: `node-${nodeId++}`,
-      name: `${mainFramework} Application`,
-      type: 'frontend',
-      icon: <Code className="w-5 h-5" />,
-      description: `Main ${mainFramework} application with ${analysis.hasTypeScript ? 'TypeScript' : 'JavaScript'}`,
-      filePath: 'src/App.tsx',
-      connections: [],
-      color: 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 text-blue-800',
-      position: { x: 0, y: 0 },
-      tech,
-      fileCount: fileStructure['src'] || 0,
-      importance: 'high',
-      githubUrl: `${baseUrl}/blob/main/src/App.tsx`
-    });
+    const nodeKey = `A${nodeId++}`;
+    nodes['frontend'] = nodeKey;
+    mermaidCode += `    ${nodeKey}["🖥️ ${mainFramework} App"]:::frontend\n`;
   }
 
   if (analysis.components.length > 0) {
-    layers.presentation.nodes.push({
-      id: `node-${nodeId++}`,
-      name: 'UI Components',
-      type: 'component',
-      icon: <Package className="w-5 h-5" />,
-      description: `${analysis.components.length} reusable React components`,
-      filePath: 'src/components/',
-      connections: [],
-      color: 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-300 text-purple-800',
-      position: { x: 0, y: 0 },
-      tech: ['React Components', 'Reusable UI'],
-      fileCount: analysis.components.length,
-      importance: 'high',
-      githubUrl: `${baseUrl}/tree/main/src/components`
-    });
+    const nodeKey = `A${nodeId++}`;
+    nodes['components'] = nodeKey;
+    mermaidCode += `    ${nodeKey}["🧩 UI Components<br/>${analysis.components.length} files"]:::frontend\n`;
   }
 
-  if (analysis.styles.length > 0 || analysis.hasTailwind) {
-    const tech = analysis.hasTailwind ? ['Tailwind CSS'] : ['CSS', 'SCSS'];
-    layers.presentation.nodes.push({
-      id: `node-${nodeId++}`,
-      name: 'Styling System',
-      type: 'frontend',
-      icon: <Smartphone className="w-5 h-5" />,
-      description: `Design system with ${analysis.hasTailwind ? 'Tailwind CSS' : 'custom styles'}`,
-      filePath: analysis.hasTailwind ? 'tailwind.config.ts' : 'src/styles/',
-      connections: [],
-      color: 'bg-gradient-to-br from-pink-50 to-pink-100 border-pink-300 text-pink-800',
-      position: { x: 0, y: 0 },
-      tech,
-      fileCount: analysis.styles.length,
-      importance: 'medium',
-      githubUrl: `${baseUrl}/blob/main/tailwind.config.ts`
-    });
+  if (analysis.hasTailwind || analysis.styles.length > 0) {
+    const nodeKey = `A${nodeId++}`;
+    nodes['styles'] = nodeKey;
+    const tech = analysis.hasTailwind ? 'Tailwind CSS' : 'Custom CSS';
+    mermaidCode += `    ${nodeKey}["🎨 ${tech}"]:::frontend\n`;
   }
 
-  // Business Logic Layer
-  if (analysis.services.length > 0) {
-    layers.business.nodes.push({
-      id: `node-${nodeId++}`,
-      name: 'Business Logic',
-      type: 'service',
-      icon: <Zap className="w-5 h-5" />,
-      description: `${analysis.services.length} service modules and utilities`,
-      filePath: 'src/services/',
-      connections: [],
-      color: 'bg-gradient-to-br from-green-50 to-green-100 border-green-300 text-green-800',
-      position: { x: 0, y: 0 },
-      tech: ['Services', 'Business Rules'],
-      fileCount: analysis.services.length,
-      importance: 'high',
-      githubUrl: `${baseUrl}/tree/main/src/services`
-    });
+  // Backend Layer
+  if (analysis.hasNodeJS || analysis.hasExpress) {
+    const nodeKey = `B${nodeId++}`;
+    nodes['backend'] = nodeKey;
+    const tech = analysis.hasExpress ? 'Express.js' : 'Node.js';
+    mermaidCode += `    ${nodeKey}["⚡ ${tech} Server"]:::backend\n`;
   }
 
   if (analysis.hasAPI) {
-    layers.business.nodes.push({
-      id: `node-${nodeId++}`,
-      name: 'API Integration',
-      type: 'service',
-      icon: <Server className="w-5 h-5" />,
-      description: 'RESTful API endpoints and data fetching',
-      filePath: 'src/api/',
-      connections: [],
-      color: 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-300 text-orange-800',
-      position: { x: 0, y: 0 },
-      tech: ['REST API', 'HTTP Client'],
-      importance: 'high',
-      githubUrl: `${baseUrl}/tree/main/src/api`
-    });
-  }
-
-  if (analysis.hasRedux) {
-    layers.business.nodes.push({
-      id: `node-${nodeId++}`,
-      name: 'State Management',
-      type: 'service',
-      icon: <Database className="w-5 h-5" />,
-      description: 'Redux store for application state',
-      filePath: 'src/store/',
-      connections: [],
-      color: 'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-300 text-indigo-800',
-      position: { x: 0, y: 0 },
-      tech: ['Redux', 'State Management'],
-      importance: 'high',
-      githubUrl: `${baseUrl}/tree/main/src/store`
-    });
-  }
-
-  // Data Layer
-  if (analysis.hasDatabase) {
-    layers.data.nodes.push({
-      id: `node-${nodeId++}`,
-      name: 'Database',
-      type: 'database',
-      icon: <Database className="w-5 h-5" />,
-      description: 'Data persistence and storage layer',
-      filePath: 'database/',
-      connections: [],
-      color: 'bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-300 text-cyan-800',
-      position: { x: 0, y: 0 },
-      tech: ['Database', 'SQL'],
-      importance: 'high',
-      githubUrl: `${baseUrl}/tree/main/database`
-    });
+    const nodeKey = `B${nodeId++}`;
+    nodes['api'] = nodeKey;
+    mermaidCode += `    ${nodeKey}["🔗 REST API"]:::backend\n`;
   }
 
   if (analysis.hasGraphQL) {
-    layers.data.nodes.push({
-      id: `node-${nodeId++}`,
-      name: 'GraphQL API',
-      type: 'service',
-      icon: <Globe className="w-5 h-5" />,
-      description: 'GraphQL schema and resolvers',
-      filePath: 'src/graphql/',
-      connections: [],
-      color: 'bg-gradient-to-br from-pink-50 to-pink-100 border-pink-300 text-pink-800',
-      position: { x: 0, y: 0 },
-      tech: ['GraphQL', 'API'],
-      importance: 'high',
-      githubUrl: `${baseUrl}/tree/main/src/graphql`
-    });
+    const nodeKey = `B${nodeId++}`;
+    nodes['graphql'] = nodeKey;
+    mermaidCode += `    ${nodeKey}["📊 GraphQL API"]:::backend\n`;
+  }
+
+  if (analysis.services.length > 0) {
+    const nodeKey = `B${nodeId++}`;
+    nodes['services'] = nodeKey;
+    mermaidCode += `    ${nodeKey}["🔧 Business Logic<br/>${analysis.services.length} services"]:::backend\n`;
+  }
+
+  // Database Layer
+  if (analysis.hasPrisma) {
+    const nodeKey = `D${nodeId++}`;
+    nodes['prisma'] = nodeKey;
+    mermaidCode += `    ${nodeKey}["🗃️ Prisma ORM"]:::database\n`;
+  }
+
+  if (analysis.hasDatabase) {
+    const nodeKey = `D${nodeId++}`;
+    nodes['database'] = nodeKey;
+    mermaidCode += `    ${nodeKey}["💾 Database"]:::database\n`;
+  }
+
+  if (analysis.hasRedux) {
+    const nodeKey = `D${nodeId++}`;
+    nodes['redux'] = nodeKey;
+    mermaidCode += `    ${nodeKey}["🏪 Redux Store"]:::database\n`;
   }
 
   // Infrastructure Layer
   if (analysis.hasVite || analysis.hasWebpack) {
-    const buildTool = analysis.hasVite ? 'Vite' : 'Webpack';
-    layers.infrastructure.nodes.push({
-      id: `node-${nodeId++}`,
-      name: `Build System (${buildTool})`,
-      type: 'infrastructure',
-      icon: <Package className="w-5 h-5" />,
-      description: `${buildTool} build configuration and bundling`,
-      filePath: analysis.hasVite ? 'vite.config.ts' : 'webpack.config.js',
-      connections: [],
-      color: 'bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-300 text-yellow-800',
-      position: { x: 0, y: 0 },
-      tech: [buildTool, 'Module Bundling'],
-      importance: 'medium',
-      githubUrl: `${baseUrl}/blob/main/vite.config.ts`
-    });
-  }
-
-  if (analysis.hasTests) {
-    layers.infrastructure.nodes.push({
-      id: `node-${nodeId++}`,
-      name: 'Testing Framework',
-      type: 'infrastructure',
-      icon: <Shield className="w-5 h-5" />,
-      description: 'Automated testing and quality assurance',
-      filePath: 'tests/',
-      connections: [],
-      color: 'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-300 text-emerald-800',
-      position: { x: 0, y: 0 },
-      tech: ['Testing', 'QA'],
-      importance: 'high',
-      githubUrl: `${baseUrl}/tree/main/tests`
-    });
+    const nodeKey = `I${nodeId++}`;
+    nodes['build'] = nodeKey;
+    const tool = analysis.hasVite ? 'Vite' : 'Webpack';
+    mermaidCode += `    ${nodeKey}["📦 ${tool} Build"]:::infrastructure\n`;
   }
 
   if (analysis.hasDocker) {
-    layers.infrastructure.nodes.push({
-      id: `node-${nodeId++}`,
-      name: 'Containerization',
-      type: 'infrastructure',
-      icon: <Cloud className="w-5 h-5" />,
-      description: 'Docker containerization setup',
-      filePath: 'Dockerfile',
-      connections: [],
-      color: 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-300 text-slate-800',
-      position: { x: 0, y: 0 },
-      tech: ['Docker', 'Containers'],
-      importance: 'medium',
-      githubUrl: `${baseUrl}/blob/main/Dockerfile`
-    });
+    const nodeKey = `I${nodeId++}`;
+    nodes['docker'] = nodeKey;
+    mermaidCode += `    ${nodeKey}["🐳 Docker"]:::infrastructure\n`;
   }
 
   if (analysis.hasCI) {
-    layers.infrastructure.nodes.push({
-      id: `node-${nodeId++}`,
-      name: 'CI/CD Pipeline',
-      type: 'infrastructure',
-      icon: <GitBranch className="w-5 h-5" />,
-      description: 'Continuous integration and deployment',
-      filePath: '.github/workflows/',
-      connections: [],
-      color: 'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-300 text-indigo-800',
-      position: { x: 0, y: 0 },
-      tech: ['GitHub Actions', 'CI/CD'],
-      importance: 'high',
-      githubUrl: `${baseUrl}/tree/main/.github/workflows`
-    });
+    const nodeKey = `I${nodeId++}`;
+    nodes['ci'] = nodeKey;
+    mermaidCode += `    ${nodeKey}["🔄 CI/CD Pipeline"]:::infrastructure\n`;
   }
 
+  if (analysis.hasTests) {
+    const nodeKey = `I${nodeId++}`;
+    nodes['tests'] = nodeKey;
+    mermaidCode += `    ${nodeKey}["🧪 Testing Suite"]:::infrastructure\n`;
+  }
+
+  // Config Layer
   if (analysis.hasESLint || analysis.hasPrettier) {
+    const nodeKey = `C${nodeId++}`;
+    nodes['linting'] = nodeKey;
     const tools = [];
     if (analysis.hasESLint) tools.push('ESLint');
     if (analysis.hasPrettier) tools.push('Prettier');
-    
-    layers.infrastructure.nodes.push({
-      id: `node-${nodeId++}`,
-      name: 'Code Quality',
-      type: 'infrastructure',
-      icon: <Settings className="w-5 h-5" />,
-      description: `Code linting and formatting with ${tools.join(' & ')}`,
-      filePath: '.eslintrc',
-      connections: [],
-      color: 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300 text-gray-800',
-      position: { x: 0, y: 0 },
-      tech: tools,
-      importance: 'medium',
-      githubUrl: `${baseUrl}/blob/main/.eslintrc`
-    });
+    mermaidCode += `    ${nodeKey}["⚙️ ${tools.join(' + ')}"]:::config\n`;
   }
 
-  // Position nodes in each layer
-  Object.entries(layers).forEach(([layerName, layer]) => {
-    const nodesInLayer = layer.nodes.length;
-    const spacing = Math.max(300, 800 / Math.max(nodesInLayer, 1));
-    const startX = Math.max(50, (900 - (nodesInLayer - 1) * spacing) / 2);
+  // Add connections
+  mermaidCode += '\n    %% Connections\n';
+  
+  if (nodes['frontend'] && nodes['components']) {
+    mermaidCode += `    ${nodes['frontend']} --> ${nodes['components']}\n`;
+  }
+  
+  if (nodes['frontend'] && nodes['styles']) {
+    mermaidCode += `    ${nodes['frontend']} --> ${nodes['styles']}\n`;
+  }
+  
+  if (nodes['frontend'] && nodes['api']) {
+    mermaidCode += `    ${nodes['frontend']} --> ${nodes['api']}\n`;
+  }
+  
+  if (nodes['api'] && nodes['services']) {
+    mermaidCode += `    ${nodes['api']} --> ${nodes['services']}\n`;
+  }
+  
+  if (nodes['services'] && nodes['database']) {
+    mermaidCode += `    ${nodes['services']} --> ${nodes['database']}\n`;
+  }
+  
+  if (nodes['prisma'] && nodes['database']) {
+    mermaidCode += `    ${nodes['prisma']} --> ${nodes['database']}\n`;
+  }
+  
+  if (nodes['backend'] && nodes['api']) {
+    mermaidCode += `    ${nodes['backend']} --> ${nodes['api']}\n`;
+  }
+  
+  if (nodes['build'] && nodes['frontend']) {
+    mermaidCode += `    ${nodes['build']} --> ${nodes['frontend']}\n`;
+  }
+  
+  if (nodes['docker'] && nodes['backend']) {
+    mermaidCode += `    ${nodes['docker']} --> ${nodes['backend']}\n`;
+  }
+  
+  if (nodes['tests'] && nodes['frontend']) {
+    mermaidCode += `    ${nodes['tests']} --> ${nodes['frontend']}\n`;
+  }
+  
+  if (nodes['tests'] && nodes['backend']) {
+    mermaidCode += `    ${nodes['tests']} --> ${nodes['backend']}\n`;
+  }
 
-    layer.nodes.forEach((node, index) => {
-      node.position = {
-        x: startX + index * spacing,
-        y: layer.y
-      };
-      nodes.push(node);
-    });
-  });
-
-  return nodes;
+  return mermaidCode;
 };
 
-const ConnectionLine: React.FC<{ from: ArchitectureNode; to: ArchitectureNode }> = ({ from, to }) => {
-  const fromX = from.position.x + 140;
-  const fromY = from.position.y + 60;
-  const toX = to.position.x + 140;
-  const toY = to.position.y + 60;
-
-  return (
-    <motion.line
-      x1={fromX}
-      y1={fromY}
-      x2={toX}
-      y2={toY}
-      stroke="hsl(var(--muted-foreground))"
-      strokeWidth="2"
-      strokeDasharray="6,4"
-      initial={{ pathLength: 0, opacity: 0 }}
-      animate={{ pathLength: 1, opacity: 0.3 }}
-      transition={{ duration: 2, delay: Math.random() * 1 }}
-      className="pointer-events-none"
-    />
-  );
-};
-
-const ArchitectureNodeComponent: React.FC<{ 
-  node: ArchitectureNode; 
-  onNodeClick: (node: ArchitectureNode) => void;
-}> = ({ node, onNodeClick }) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const getImportanceIndicator = (importance: string) => {
-    switch (importance) {
-      case 'high':
-        return <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />;
-      case 'medium':
-        return <div className="w-2 h-2 bg-yellow-500 rounded-full" />;
-      default:
-        return <div className="w-2 h-2 bg-green-500 rounded-full" />;
-    }
-  };
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <motion.div
-            className="absolute cursor-pointer select-none"
-            style={{ 
-              left: node.position.x, 
-              top: node.position.y,
-              width: '280px',
-              height: '120px'
-            }}
-            initial={{ opacity: 0, scale: 0.8, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ 
-              duration: 0.7, 
-              delay: (node.position.y / 150) * 0.1,
-              type: "spring",
-              stiffness: 80 
-            }}
-            whileHover={{ scale: 1.05, y: -4 }}
-            whileTap={{ scale: 0.95 }}
-            onHoverStart={() => setIsHovered(true)}
-            onHoverEnd={() => setIsHovered(false)}
-            onClick={() => onNodeClick(node)}
-          >
-            <Card className={`${node.color} transition-all duration-500 h-full border-2 shadow-lg ${
-              isHovered ? 'shadow-xl border-primary/50 ring-2 ring-primary/20' : 'shadow-md'
-            }`}>
-              <CardContent className="p-4 h-full flex flex-col">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white/50 rounded-lg">
-                      {node.icon}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm leading-tight">{node.name}</h3>
-                      <Badge variant="outline" className="text-xs px-2 py-0 mt-1">
-                        {node.type}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {getImportanceIndicator(node.importance)}
-                    <ExternalLink className="w-3 h-3 opacity-60" />
-                  </div>
-                </div>
-                
-                <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">
-                  {node.description}
-                </p>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {node.fileCount && (
-                      <span className="text-xs font-medium bg-white/30 px-2 py-1 rounded">
-                        {node.fileCount} files
-                      </span>
-                    )}
-                  </div>
-                  {node.tech && (
-                    <div className="text-xs font-medium bg-white/30 px-2 py-1 rounded truncate max-w-24">
-                      {node.tech[0]}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-96">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1 bg-primary/10 rounded">
-                {node.icon}
-              </div>
-              <p className="font-bold">{node.name}</p>
-              {getImportanceIndicator(node.importance)}
-            </div>
-            <p className="text-sm">{node.description}</p>
-            {node.tech && (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold">Technologies:</p>
-                <div className="flex flex-wrap gap-1">
-                  {node.tech.map((tech, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {tech}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {node.filePath && (
-              <p className="text-xs text-muted-foreground border-t pt-2">
-                📁 {node.filePath}
-              </p>
-            )}
-            {node.fileCount && (
-              <p className="text-xs text-muted-foreground">
-                📊 {node.fileCount} files
-              </p>
-            )}
-            <p className="text-xs text-blue-600">
-              Click to open in GitHub →
-            </p>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
+const fixGithubUrl = (baseUrl: string, filePath: string): string => {
+  if (!baseUrl || !filePath) return '';
+  
+  // Clean up the base URL
+  const cleanBaseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+  
+  // Ensure we're using the correct GitHub URL format
+  let githubUrl = cleanBaseUrl;
+  if (githubUrl.includes('api.github.com/repos/')) {
+    githubUrl = githubUrl.replace('api.github.com/repos/', 'github.com/');
+  }
+  
+  // Build the proper GitHub file URL
+  const cleanFilePath = filePath.replace(/^\//, ''); // Remove leading slash
+  return `${githubUrl}/blob/main/${cleanFilePath}`;
 };
 
 export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps> = ({ repositoryData }) => {
   const { toast } = useToast();
+  const mermaidRef = useRef<HTMLDivElement>(null);
+  const [mermaidLoaded, setMermaidLoaded] = useState(false);
 
-  const architectureNodes = useMemo(() => {
-    return generateAdvancedArchitecture(repositoryData);
+  const mermaidDiagram = useMemo(() => {
+    return generateMermaidDiagram(repositoryData);
   }, [repositoryData]);
 
-  const handleNodeClick = (node: ArchitectureNode) => {
-    if (node.githubUrl) {
-      // Open in new tab
-      window.open(node.githubUrl, '_blank', 'noopener,noreferrer');
+  const architectureAnalysis = useMemo(() => {
+    const result = analyzeRepositoryStructure(repositoryData);
+    return result?.analysis;
+  }, [repositoryData]);
+
+  useEffect(() => {
+    if (mermaidDiagram && mermaidRef.current) {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        themeVariables: {
+          primaryColor: '#f0f9ff',
+          primaryTextColor: '#1e293b',
+          primaryBorderColor: '#3b82f6',
+          lineColor: '#64748b',
+          sectionBkgColor: '#f8fafc',
+          altSectionBkgColor: '#e2e8f0',
+          gridColor: '#e2e8f0',
+          secondaryColor: '#fef3c7',
+          tertiaryColor: '#f0fdf4'
+        }
+      });
+
+      mermaidRef.current.innerHTML = mermaidDiagram;
+      mermaid.contentLoaded();
+      setMermaidLoaded(true);
+    }
+  }, [mermaidDiagram]);
+
+  const handleExploreCode = (filePath: string) => {
+    if (!repositoryData?.info?.html_url) {
+      toast({
+        title: "Repository URL not available",
+        description: "Cannot open file - repository URL is missing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const githubUrl = fixGithubUrl(repositoryData.info.html_url, filePath);
+    
+    console.log('Opening GitHub URL:', githubUrl);
+    
+    window.open(githubUrl, '_blank', 'noopener,noreferrer');
+    
+    toast({
+      title: `Opening ${filePath}`,
+      description: "Redirecting to GitHub in new tab",
+      duration: 2000,
+    });
+  };
+
+  const downloadDiagram = () => {
+    if (!mermaidRef.current) return;
+    
+    const svgElement = mermaidRef.current.querySelector('svg');
+    if (svgElement) {
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(svgBlob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${repositoryData?.info?.name || 'repository'}-architecture.svg`;
+      link.click();
+      
+      URL.revokeObjectURL(url);
       
       toast({
-        title: `Opening ${node.name}`,
-        description: `Redirecting to GitHub: ${node.filePath}`,
-        duration: 2000,
-      });
-    } else {
-      toast({
-        title: `${node.name} Component`,
-        description: `This component represents ${node.description.toLowerCase()}. GitHub URL not available for this repository.`,
-        duration: 3000,
+        title: "Diagram Downloaded",
+        description: "Architecture diagram saved as SVG file",
       });
     }
   };
-
-  const maxHeight = Math.max(...architectureNodes.map(node => node.position.y)) + 180;
-  const layerLabels = ['Presentation Layer', 'Business Logic Layer', 'Data Layer', 'Infrastructure Layer'];
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Layers className="w-5 h-5" />
-          Advanced System Architecture
+          System Architecture Diagram
           <Sparkles className="w-4 h-4 text-yellow-500" />
         </CardTitle>
         <CardDescription>
-          Interactive layered architecture diagram - click components to view source code on GitHub
+          Interactive Mermaid.js architecture diagram - dynamically generated from repository analysis
         </CardDescription>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={downloadDiagram} disabled={!mermaidLoaded}>
+            <Download className="w-4 h-4 mr-2" />
+            Download SVG
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        {architectureNodes.length === 0 ? (
+        {!mermaidDiagram ? (
           <div className="text-center py-16">
             <Brain className="w-20 h-20 mx-auto mb-6 text-muted-foreground opacity-50" />
             <h3 className="text-xl font-semibold mb-3">No Repository Data</h3>
             <p className="text-muted-foreground mb-4">
-              Import a repository to see its intelligent architecture analysis
+              Import a repository to see its system architecture diagram
             </p>
             <Badge variant="outline" className="px-4 py-2">
               <Sparkles className="w-4 h-4 mr-2" />
-              AI-Powered Analysis
+              Powered by Mermaid.js
             </Badge>
           </div>
         ) : (
-          <div className="relative w-full bg-gradient-to-br from-background via-accent/5 to-primary/5 rounded-xl border-2 border-border/50 overflow-hidden">
-            {/* Layer Labels */}
-            <div className="absolute left-4 top-0 bottom-0 flex flex-col justify-around py-8 z-10">
-              {layerLabels.map((label, index) => (
-                <div
-                  key={label}
-                  className="writing-mode-vertical-rl text-xs font-semibold text-muted-foreground bg-background/80 px-2 py-1 rounded rotate-180"
-                  style={{ transform: `translateY(${index * 130 + 60}px)` }}
-                >
-                  {label}
+          <div className="space-y-6">
+            {/* Mermaid Diagram */}
+            <div className="relative w-full bg-gradient-to-br from-background via-accent/5 to-primary/5 rounded-xl border-2 border-border/50 p-6 overflow-auto">
+              <div ref={mermaidRef} className="flex justify-center min-h-[400px]" />
+              {!mermaidLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p className="text-sm text-muted-foreground">Generating diagram...</p>
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
 
-            {/* Architecture Nodes */}
-            <div 
-              className="relative overflow-auto pl-20"
-              style={{ 
-                minWidth: '1000px', 
-                minHeight: `${maxHeight}px`, 
-                height: `${Math.min(maxHeight, 700)}px` 
-              }}
-            >
-              {/* Connection Lines */}
-              <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
-                {architectureNodes.map((node, index) => 
-                  architectureNodes.slice(index + 1).map((otherNode, otherIndex) => {
-                    if (Math.abs(node.position.y - otherNode.position.y) === 150) {
-                      return (
-                        <ConnectionLine
-                          key={`${node.id}-${otherNode.id}`}
-                          from={node}
-                          to={otherNode}
-                        />
-                      );
-                    }
-                    return null;
-                  })
+            {/* Quick Actions */}
+            {architectureAnalysis && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {architectureAnalysis.hasReact && (
+                  <Button variant="outline" size="sm" onClick={() => handleExploreCode('src/App.tsx')}>
+                    <Code className="w-4 h-4 mr-2" />
+                    Explore React App
+                  </Button>
                 )}
-              </svg>
-
-              {/* Nodes */}
-              <div style={{ zIndex: 2, position: 'relative' }}>
-                {architectureNodes.map((node) => (
-                  <ArchitectureNodeComponent
-                    key={node.id}
-                    node={node}
-                    onNodeClick={handleNodeClick}
-                  />
-                ))}
+                {architectureAnalysis.hasPrisma && (
+                  <Button variant="outline" size="sm" onClick={() => handleExploreCode('prisma/schema.prisma')}>
+                    <Database className="w-4 h-4 mr-2" />
+                    View Database Schema
+                  </Button>
+                )}
+                {architectureAnalysis.hasAPI && (
+                  <Button variant="outline" size="sm" onClick={() => handleExploreCode('src/api')}>
+                    <Server className="w-4 h-4 mr-2" />
+                    Explore API
+                  </Button>
+                )}
+                {architectureAnalysis.hasTests && (
+                  <Button variant="outline" size="sm" onClick={() => handleExploreCode('tests')}>
+                    <Shield className="w-4 h-4 mr-2" />
+                    View Tests
+                  </Button>
+                )}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Enhanced Legend & Analytics */}
-        {architectureNodes.length > 0 && (
-          <div className="mt-8 space-y-6">
-            {/* Component Type Legend */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded"></div>
-                <span className="text-sm font-medium">Frontend</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded"></div>
-                <span className="text-sm font-medium">Business Logic</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gradient-to-br from-cyan-50 to-cyan-100 border-2 border-cyan-300 rounded"></div>
-                <span className="text-sm font-medium">Data Layer</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded"></div>
-                <span className="text-sm font-medium">Infrastructure</span>
-              </div>
-            </div>
-
-            {/* Importance Legend */}
-            <div className="flex items-center gap-6">
-              <span className="text-sm font-medium">Component Importance:</span>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-xs">Critical</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <span className="text-xs">Important</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-xs">Supporting</span>
-              </div>
-            </div>
+            )}
 
             {/* Repository Insights */}
-            {repositoryData && (
+            {repositoryData && architectureAnalysis && (
               <div className="p-6 bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 rounded-xl border border-border/50">
                 <h4 className="font-bold mb-4 flex items-center gap-2">
                   <Brain className="w-5 h-5" />
-                  AI Architecture Analysis
+                  Architecture Analysis
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                   <div className="text-center p-3 bg-background/50 rounded-lg">
-                    <div className="text-2xl font-bold text-primary">{architectureNodes.length}</div>
-                    <div className="text-xs text-muted-foreground">Components</div>
+                    <div className="text-2xl font-bold text-primary">
+                      {architectureAnalysis.framework}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Framework</div>
                   </div>
                   <div className="text-center p-3 bg-background/50 rounded-lg">
                     <div className="text-2xl font-bold text-primary">
-                      {architectureNodes.filter(n => n.importance === 'high').length}
+                      {architectureAnalysis.hasTypeScript ? 'TS' : 'JS'}
                     </div>
-                    <div className="text-xs text-muted-foreground">Critical</div>
+                    <div className="text-xs text-muted-foreground">Language</div>
                   </div>
                   <div className="text-center p-3 bg-background/50 rounded-lg">
                     <div className="text-2xl font-bold text-primary">
@@ -779,14 +556,42 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
                   </div>
                   <div className="text-center p-3 bg-background/50 rounded-lg">
                     <div className="text-2xl font-bold text-primary">
-                      {new Set(architectureNodes.flatMap(n => n.tech || [])).size}
+                      {architectureAnalysis.components.length}
                     </div>
-                    <div className="text-xs text-muted-foreground">Technologies</div>
+                    <div className="text-xs text-muted-foreground">Components</div>
                   </div>
                   <div className="text-center p-3 bg-background/50 rounded-lg">
-                    <div className="text-2xl font-bold text-primary">4</div>
-                    <div className="text-xs text-muted-foreground">Layers</div>
+                    <div className="text-2xl font-bold text-primary">
+                      {[
+                        architectureAnalysis.hasDatabase && 'DB',
+                        architectureAnalysis.hasAPI && 'API',
+                        architectureAnalysis.hasTests && 'Tests',
+                        architectureAnalysis.hasDocker && 'Docker'
+                      ].filter(Boolean).length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Features</div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Technology Stack */}
+            {architectureAnalysis && (
+              <div className="space-y-4">
+                <h4 className="font-semibold">Technology Stack</h4>
+                <div className="flex flex-wrap gap-2">
+                  {architectureAnalysis.hasReact && <Badge variant="secondary">React</Badge>}
+                  {architectureAnalysis.hasNextJS && <Badge variant="secondary">Next.js</Badge>}
+                  {architectureAnalysis.hasTypeScript && <Badge variant="secondary">TypeScript</Badge>}
+                  {architectureAnalysis.hasNodeJS && <Badge variant="secondary">Node.js</Badge>}
+                  {architectureAnalysis.hasTailwind && <Badge variant="secondary">Tailwind CSS</Badge>}
+                  {architectureAnalysis.hasPrisma && <Badge variant="secondary">Prisma</Badge>}
+                  {architectureAnalysis.hasVite && <Badge variant="secondary">Vite</Badge>}
+                  {architectureAnalysis.hasRedux && <Badge variant="secondary">Redux</Badge>}
+                  {architectureAnalysis.hasGraphQL && <Badge variant="secondary">GraphQL</Badge>}
+                  {architectureAnalysis.hasDocker && <Badge variant="secondary">Docker</Badge>}
+                  {architectureAnalysis.hasESLint && <Badge variant="secondary">ESLint</Badge>}
+                  {architectureAnalysis.hasPrettier && <Badge variant="secondary">Prettier</Badge>}
                 </div>
               </div>
             )}
