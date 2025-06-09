@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,22 +32,6 @@ import mermaid from 'mermaid';
 
 interface SystemArchitectureDiagramProps {
   repositoryData?: any;
-}
-
-interface ArchitectureNode {
-  id: string;
-  name: string;
-  type: 'frontend' | 'backend' | 'database' | 'service' | 'config' | 'external' | 'infrastructure' | 'component';
-  icon: React.ReactNode;
-  description: string;
-  filePath?: string;
-  connections: string[];
-  color: string;
-  position: { x: number; y: number };
-  tech?: string[];
-  fileCount?: number;
-  importance: 'high' | 'medium' | 'low';
-  githubUrl?: string;
 }
 
 const analyzeRepositoryStructure = (repositoryData: any) => {
@@ -204,20 +187,20 @@ const generateMermaidDiagram = (repositoryData: any): string => {
     const mainFramework = analysis.hasNextJS ? 'Next.js' : 'React';
     const nodeKey = `A${nodeId++}`;
     nodes['frontend'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["🖥️ ${mainFramework} App"]:::frontend\n`;
+    mermaidCode += `    ${nodeKey}["Frontend ${mainFramework}"]:::frontend\n`;
   }
 
   if (analysis.components.length > 0) {
     const nodeKey = `A${nodeId++}`;
     nodes['components'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["🧩 UI Components<br/>${analysis.components.length} files"]:::frontend\n`;
+    mermaidCode += `    ${nodeKey}["Components ${analysis.components.length}"]:::frontend\n`;
   }
 
   if (analysis.hasTailwind || analysis.styles.length > 0) {
     const nodeKey = `A${nodeId++}`;
     nodes['styles'] = nodeKey;
-    const tech = analysis.hasTailwind ? 'Tailwind CSS' : 'Custom CSS';
-    mermaidCode += `    ${nodeKey}["🎨 ${tech}"]:::frontend\n`;
+    const tech = analysis.hasTailwind ? 'Tailwind CSS' : 'CSS';
+    mermaidCode += `    ${nodeKey}["Styles ${tech}"]:::frontend\n`;
   }
 
   // Backend Layer
@@ -225,44 +208,44 @@ const generateMermaidDiagram = (repositoryData: any): string => {
     const nodeKey = `B${nodeId++}`;
     nodes['backend'] = nodeKey;
     const tech = analysis.hasExpress ? 'Express.js' : 'Node.js';
-    mermaidCode += `    ${nodeKey}["⚡ ${tech} Server"]:::backend\n`;
+    mermaidCode += `    ${nodeKey}["Backend ${tech}"]:::backend\n`;
   }
 
   if (analysis.hasAPI) {
     const nodeKey = `B${nodeId++}`;
     nodes['api'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["🔗 REST API"]:::backend\n`;
+    mermaidCode += `    ${nodeKey}["REST API"]:::backend\n`;
   }
 
   if (analysis.hasGraphQL) {
     const nodeKey = `B${nodeId++}`;
     nodes['graphql'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["📊 GraphQL API"]:::backend\n`;
+    mermaidCode += `    ${nodeKey}["GraphQL"]:::backend\n`;
   }
 
   if (analysis.services.length > 0) {
     const nodeKey = `B${nodeId++}`;
     nodes['services'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["🔧 Business Logic<br/>${analysis.services.length} services"]:::backend\n`;
+    mermaidCode += `    ${nodeKey}["Services ${analysis.services.length}"]:::backend\n`;
   }
 
   // Database Layer
   if (analysis.hasPrisma) {
     const nodeKey = `D${nodeId++}`;
     nodes['prisma'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["🗃️ Prisma ORM"]:::database\n`;
+    mermaidCode += `    ${nodeKey}["Prisma ORM"]:::database\n`;
   }
 
   if (analysis.hasDatabase) {
     const nodeKey = `D${nodeId++}`;
     nodes['database'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["💾 Database"]:::database\n`;
+    mermaidCode += `    ${nodeKey}["Database"]:::database\n`;
   }
 
   if (analysis.hasRedux) {
     const nodeKey = `D${nodeId++}`;
     nodes['redux'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["🏪 Redux Store"]:::database\n`;
+    mermaidCode += `    ${nodeKey}["Redux Store"]:::database\n`;
   }
 
   // Infrastructure Layer
@@ -270,25 +253,25 @@ const generateMermaidDiagram = (repositoryData: any): string => {
     const nodeKey = `I${nodeId++}`;
     nodes['build'] = nodeKey;
     const tool = analysis.hasVite ? 'Vite' : 'Webpack';
-    mermaidCode += `    ${nodeKey}["📦 ${tool} Build"]:::infrastructure\n`;
+    mermaidCode += `    ${nodeKey}["Build ${tool}"]:::infrastructure\n`;
   }
 
   if (analysis.hasDocker) {
     const nodeKey = `I${nodeId++}`;
     nodes['docker'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["🐳 Docker"]:::infrastructure\n`;
+    mermaidCode += `    ${nodeKey}["Docker"]:::infrastructure\n`;
   }
 
   if (analysis.hasCI) {
     const nodeKey = `I${nodeId++}`;
     nodes['ci'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["🔄 CI/CD Pipeline"]:::infrastructure\n`;
+    mermaidCode += `    ${nodeKey}["CI/CD"]:::infrastructure\n`;
   }
 
   if (analysis.hasTests) {
     const nodeKey = `I${nodeId++}`;
     nodes['tests'] = nodeKey;
-    mermaidCode += `    ${nodeKey}["🧪 Testing Suite"]:::infrastructure\n`;
+    mermaidCode += `    ${nodeKey}["Testing"]:::infrastructure\n`;
   }
 
   // Config Layer
@@ -298,7 +281,7 @@ const generateMermaidDiagram = (repositoryData: any): string => {
     const tools = [];
     if (analysis.hasESLint) tools.push('ESLint');
     if (analysis.hasPrettier) tools.push('Prettier');
-    mermaidCode += `    ${nodeKey}["⚙️ ${tools.join(' + ')}"]:::config\n`;
+    mermaidCode += `    ${nodeKey}["Config ${tools.join(' + ')}"]:::config\n`;
   }
 
   // Add connections
@@ -355,16 +338,15 @@ const fixGithubUrl = (baseUrl: string, filePath: string): string => {
   if (!baseUrl || !filePath) return '';
   
   // Clean up the base URL
-  const cleanBaseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+  let githubUrl = baseUrl.replace(/\/$/, '');
   
-  // Ensure we're using the correct GitHub URL format
-  let githubUrl = cleanBaseUrl;
+  // Convert API URL to regular GitHub URL
   if (githubUrl.includes('api.github.com/repos/')) {
     githubUrl = githubUrl.replace('api.github.com/repos/', 'github.com/');
   }
   
   // Build the proper GitHub file URL
-  const cleanFilePath = filePath.replace(/^\//, ''); // Remove leading slash
+  const cleanFilePath = filePath.replace(/^\//, '');
   return `${githubUrl}/blob/main/${cleanFilePath}`;
 };
 
@@ -372,6 +354,7 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
   const { toast } = useToast();
   const mermaidRef = useRef<HTMLDivElement>(null);
   const [mermaidLoaded, setMermaidLoaded] = useState(false);
+  const [diagramId] = useState(() => `mermaid-${Date.now()}`);
 
   const mermaidDiagram = useMemo(() => {
     return generateMermaidDiagram(repositoryData);
@@ -384,9 +367,12 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
 
   useEffect(() => {
     if (mermaidDiagram && mermaidRef.current) {
+      // Initialize mermaid with proper configuration
       mermaid.initialize({
-        startOnLoad: true,
+        startOnLoad: false,
         theme: 'base',
+        securityLevel: 'loose',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
         themeVariables: {
           primaryColor: '#f0f9ff',
           primaryTextColor: '#1e293b',
@@ -400,11 +386,28 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
         }
       });
 
-      mermaidRef.current.innerHTML = mermaidDiagram;
-      mermaid.contentLoaded();
-      setMermaidLoaded(true);
+      // Clear previous content
+      mermaidRef.current.innerHTML = '';
+      
+      // Render the diagram
+      mermaid.render(diagramId, mermaidDiagram).then(({ svg }) => {
+        if (mermaidRef.current) {
+          mermaidRef.current.innerHTML = svg;
+          setMermaidLoaded(true);
+        }
+      }).catch((error) => {
+        console.error('Mermaid rendering error:', error);
+        if (mermaidRef.current) {
+          mermaidRef.current.innerHTML = `
+            <div class="text-center text-red-500 p-8">
+              <p>Error rendering diagram</p>
+              <p class="text-sm">Please check the console for details</p>
+            </div>
+          `;
+        }
+      });
     }
-  }, [mermaidDiagram]);
+  }, [mermaidDiagram, diagramId]);
 
   const handleExploreCode = (filePath: string) => {
     if (!repositoryData?.info?.html_url) {
@@ -430,24 +433,46 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
   };
 
   const downloadDiagram = () => {
-    if (!mermaidRef.current) return;
+    if (!mermaidRef.current) {
+      toast({
+        title: "No diagram to download",
+        description: "Please wait for the diagram to load",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const svgElement = mermaidRef.current.querySelector('svg');
     if (svgElement) {
-      const svgData = new XMLSerializer().serializeToString(svgElement);
+      // Clone the SVG to avoid modifying the original
+      const clonedSvg = svgElement.cloneNode(true) as SVGElement;
+      
+      // Set proper dimensions
+      clonedSvg.setAttribute('width', '800');
+      clonedSvg.setAttribute('height', '600');
+      
+      const svgData = new XMLSerializer().serializeToString(clonedSvg);
       const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
       const url = URL.createObjectURL(svgBlob);
       
       const link = document.createElement('a');
       link.href = url;
       link.download = `${repositoryData?.info?.name || 'repository'}-architecture.svg`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       
       URL.revokeObjectURL(url);
       
       toast({
         title: "Diagram Downloaded",
         description: "Architecture diagram saved as SVG file",
+      });
+    } else {
+      toast({
+        title: "Download failed",
+        description: "No SVG diagram found to download",
+        variant: "destructive",
       });
     }
   };
@@ -487,7 +512,7 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
           <div className="space-y-6">
             {/* Mermaid Diagram */}
             <div className="relative w-full bg-gradient-to-br from-background via-accent/5 to-primary/5 rounded-xl border-2 border-border/50 p-6 overflow-auto">
-              <div ref={mermaidRef} className="flex justify-center min-h-[400px]" />
+              <div ref={mermaidRef} className="flex justify-center min-h-[400px] items-center" />
               {!mermaidLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
