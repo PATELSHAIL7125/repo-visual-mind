@@ -38,7 +38,7 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
   if (!repositoryData?.tree) return null;
 
   const analysis = {
-    // Frontend Technologies
+    // Frontend Technologies - only detect if actually present
     hasReact: false,
     hasVue: false,
     hasAngular: false,
@@ -50,7 +50,7 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     hasWebpack: false,
     hasParcel: false,
     
-    // Styling & UI
+    // Styling & UI - only detect if actually present
     hasTailwind: false,
     hasBootstrap: false,
     hasStyledComponents: false,
@@ -60,7 +60,7 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     hasMaterialUI: false,
     hasAntDesign: false,
     
-    // Backend Technologies
+    // Backend Technologies - only detect if actually present
     hasNodeJS: false,
     hasExpress: false,
     hasKoa: false,
@@ -75,7 +75,7 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     hasJava: false,
     hasSpring: false,
     
-    // Databases
+    // Databases - only detect if actually present
     hasDatabase: false,
     hasPrisma: false,
     hasSequelize: false,
@@ -87,7 +87,7 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     hasRedis: false,
     hasSQLite: false,
     
-    // APIs & Services
+    // APIs & Services - only detect if actually present
     hasAPI: false,
     hasGraphQL: false,
     hasREST: false,
@@ -95,14 +95,14 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     hasMicroservices: false,
     hasServerless: false,
     
-    // State Management
+    // State Management - only detect if actually present
     hasRedux: false,
     hasZustand: false,
     hasRecoil: false,
     hasVuex: false,
     hasPinia: false,
     
-    // Testing
+    // Testing - only detect if actually present
     hasTests: false,
     hasJest: false,
     hasCypress: false,
@@ -110,7 +110,7 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     hasVitest: false,
     hasTesting: false,
     
-    // DevOps & Infrastructure
+    // DevOps & Infrastructure - only detect if actually present
     hasDocker: false,
     hasKubernetes: false,
     hasCI: false,
@@ -121,14 +121,14 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     hasAzure: false,
     hasHeroku: false,
     
-    // Development Tools
+    // Development Tools - only detect if actually present
     hasESLint: false,
     hasPrettier: false,
     hasHusky: false,
     hasStorybook: false,
     
     // Additional Analysis
-    architecture: 'monolith',
+    architecture: 'single-page-app',
     complexity: 'simple',
     scale: 'small',
     patterns: [] as string[],
@@ -141,7 +141,7 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     assets: [] as string[],
     docs: [] as string[],
     packageManager: 'npm',
-    framework: 'unknown'
+    framework: 'React'
   };
 
   const fileStructure: { [key: string]: number } = {};
@@ -150,6 +150,20 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
   let tsFiles = 0;
   let componentCount = 0;
   let serviceCount = 0;
+
+  // Check package.json content first for more accurate detection
+  const packageJsonFile = repositoryData.tree.find((item: any) => 
+    item.path === 'package.json' && item.content
+  );
+
+  let packageJsonContent = null;
+  if (packageJsonFile?.content) {
+    try {
+      packageJsonContent = JSON.parse(packageJsonFile.content);
+    } catch (e) {
+      console.log('Could not parse package.json');
+    }
+  }
 
   repositoryData.tree.forEach((item: any) => {
     const path = item.path.toLowerCase();
@@ -162,43 +176,51 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     // Count files in directories
     fileStructure[directory] = (fileStructure[directory] || 0) + 1;
 
-    // Enhanced technology detection with more patterns
+    // VERY STRICT technology detection - only detect what's actually there
     
-    // Frontend Frameworks
-    if (extension === 'tsx' || extension === 'jsx' || fileName.includes('react') || path.includes('react')) {
+    // Frontend Frameworks - check for actual usage, not just mentions
+    if ((extension === 'tsx' || extension === 'jsx') && 
+        (item.content?.includes('import React') || item.content?.includes('from "react"') || 
+         path.includes('component') || fileName.includes('app'))) {
       analysis.hasReact = true;
       analysis.framework = 'React';
     }
-    if (fileName.includes('vue') || extension === 'vue' || path.includes('vue')) {
+    
+    if (extension === 'vue' || fileName.includes('.vue')) {
       analysis.hasVue = true;
       analysis.framework = 'Vue.js';
     }
-    if (fileName.includes('angular') || path.includes('angular') || fileName === 'angular.json') {
+    
+    if (fileName === 'angular.json' || path.includes('@angular')) {
       analysis.hasAngular = true;
       analysis.framework = 'Angular';
     }
     
-    // Build Tools & Meta Frameworks
-    if (fileName === 'next.config.js' || fileName === 'next.config.ts' || path.includes('next')) {
+    // Build Tools & Meta Frameworks - check for actual config files
+    if (fileName === 'next.config.js' || fileName === 'next.config.ts' || fileName === 'next.config.mjs') {
       analysis.hasNextJS = true;
       analysis.framework = 'Next.js';
     }
+    
     if (fileName === 'nuxt.config.js' || fileName === 'nuxt.config.ts') {
       analysis.hasNuxt = true;
       analysis.framework = 'Nuxt.js';
     }
+    
     if (fileName === 'gatsby-config.js' || fileName === 'gatsby-node.js') {
       analysis.hasGatsby = true;
       analysis.framework = 'Gatsby';
     }
-    if (fileName === 'vite.config.js' || fileName === 'vite.config.ts') {
+    
+    if (fileName === 'vite.config.js' || fileName === 'vite.config.ts' || fileName === 'vite.config.mjs') {
       analysis.hasVite = true;
     }
-    if (fileName === 'webpack.config.js' || fileName.includes('webpack')) {
+    
+    if (fileName === 'webpack.config.js' || fileName === 'webpack.config.ts') {
       analysis.hasWebpack = true;
     }
     
-    // Languages
+    // Languages - check actual file extensions
     if (extension === 'ts' || extension === 'tsx') {
       analysis.hasTypeScript = true;
       tsFiles++;
@@ -207,16 +229,11 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
       jsFiles++;
     }
     
-    // Styling Technologies
-    if (fileName === 'tailwind.config.js' || fileName === 'tailwind.config.ts' || path.includes('tailwind')) {
+    // Styling Technologies - check for actual config files
+    if (fileName === 'tailwind.config.js' || fileName === 'tailwind.config.ts') {
       analysis.hasTailwind = true;
     }
-    if (fileName.includes('bootstrap') || path.includes('bootstrap')) {
-      analysis.hasBootstrap = true;
-    }
-    if (fileName.includes('styled-components') || path.includes('styled')) {
-      analysis.hasStyledComponents = true;
-    }
+    
     if (extension === 'scss' || extension === 'sass') {
       analysis.hasSass = true;
     }
@@ -224,110 +241,130 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
       analysis.hasLess = true;
     }
     
-    // Backend Technologies
-    if (fileName === 'package.json' || fileName === 'server.js' || fileName === 'app.js' || path.includes('node')) {
+    // Backend Technologies - only if actual server files exist
+    if (fileName === 'server.js' || fileName === 'server.ts' || 
+        (fileName === 'app.js' && item.content?.includes('express')) ||
+        (fileName === 'index.js' && item.content?.includes('express'))) {
       analysis.hasNodeJS = true;
+      if (item.content?.includes('express')) {
+        analysis.hasExpress = true;
+      }
     }
-    if (fileName.includes('express') || path.includes('express')) {
-      analysis.hasExpress = true;
-    }
-    if (fileName.includes('koa') || path.includes('koa')) {
-      analysis.hasKoa = true;
-    }
-    if (extension === 'py' || fileName.includes('python')) {
+    
+    if (extension === 'py' && (fileName.includes('app') || fileName.includes('main') || fileName.includes('server'))) {
       analysis.hasPython = true;
     }
-    if (fileName.includes('django') || path.includes('django')) {
+    
+    if (fileName === 'manage.py' || fileName.includes('django')) {
       analysis.hasDjango = true;
     }
-    if (fileName.includes('flask') || path.includes('flask')) {
+    
+    if (item.content?.includes('from flask import') || fileName.includes('flask')) {
       analysis.hasFlask = true;
     }
     
-    // Databases & ORMs
-    if (fileName === 'schema.prisma' || path.includes('prisma')) {
+    // Databases & ORMs - check for actual config files
+    if (fileName === 'schema.prisma') {
       analysis.hasPrisma = true;
       analysis.hasDatabase = true;
     }
-    if (fileName.includes('sequelize') || path.includes('sequelize')) {
+    
+    if (fileName.includes('sequelize') && (extension === 'js' || extension === 'ts')) {
       analysis.hasSequelize = true;
       analysis.hasDatabase = true;
     }
-    if (fileName.includes('mongoose') || path.includes('mongoose')) {
+    
+    if (item.content?.includes('mongoose') || fileName.includes('mongoose')) {
       analysis.hasMongoose = true;
       analysis.hasMongoDB = true;
       analysis.hasDatabase = true;
     }
-    if (fileName.includes('typeorm') || path.includes('typeorm')) {
-      analysis.hasTypeORM = true;
-      analysis.hasDatabase = true;
-    }
     
-    // APIs & Communication
-    if (path.includes('api') || path.includes('endpoint') || fileName.includes('api')) {
+    // APIs & Communication - check for actual API directories/files
+    if (path.includes('/api/') && (extension === 'js' || extension === 'ts' || extension === 'tsx')) {
       analysis.hasAPI = true;
       analysis.hasREST = true;
     }
-    if (fileName.includes('graphql') || extension === 'graphql' || path.includes('graphql')) {
+    
+    if (extension === 'graphql' || fileName.includes('graphql') || item.content?.includes('graphql')) {
       analysis.hasGraphQL = true;
     }
-    if (fileName.includes('websocket') || fileName.includes('socket') || path.includes('socket')) {
+    
+    if (item.content?.includes('socket.io') || item.content?.includes('websocket')) {
       analysis.hasWebSockets = true;
     }
     
-    // State Management
-    if (path.includes('redux') || fileName.includes('redux') || path.includes('store')) {
+    // State Management - check for actual usage
+    if (item.content?.includes('redux') || item.content?.includes('@reduxjs')) {
       analysis.hasRedux = true;
     }
-    if (fileName.includes('zustand') || path.includes('zustand')) {
+    
+    if (item.content?.includes('zustand')) {
       analysis.hasZustand = true;
     }
-    if (fileName.includes('recoil') || path.includes('recoil')) {
+    
+    if (item.content?.includes('recoil')) {
       analysis.hasRecoil = true;
     }
     
-    // Testing
-    if (path.includes('test') || path.includes('spec') || extension.includes('test') || extension.includes('spec')) {
+    // Testing - check for actual test files and config
+    if (path.includes('test') || path.includes('spec') || fileName.includes('.test.') || fileName.includes('.spec.')) {
       analysis.hasTests = true;
     }
-    if (fileName.includes('jest') || path.includes('jest')) {
+    
+    if (fileName === 'jest.config.js' || fileName === 'jest.config.ts' || 
+        (packageJsonContent?.devDependencies?.jest) ||
+        item.content?.includes('describe(') || item.content?.includes('it(')) {
       analysis.hasJest = true;
       analysis.hasTesting = true;
     }
-    if (fileName.includes('cypress') || path.includes('cypress')) {
+    
+    if (fileName === 'cypress.config.js' || path.includes('cypress/') || 
+        (packageJsonContent?.devDependencies?.cypress)) {
       analysis.hasCypress = true;
       analysis.hasTesting = true;
     }
-    if (fileName.includes('playwright') || path.includes('playwright')) {
+    
+    if (fileName === 'playwright.config.js' || fileName === 'playwright.config.ts' ||
+        (packageJsonContent?.devDependencies?.playwright)) {
       analysis.hasPlaywright = true;
       analysis.hasTesting = true;
     }
     
-    // DevOps & Infrastructure
-    if (fileName === 'dockerfile' || fileName === 'docker-compose.yml' || path.includes('docker')) {
+    // DevOps & Infrastructure - check for actual files
+    if (fileName === 'dockerfile' || fileName === 'docker-compose.yml' || fileName === 'docker-compose.yaml') {
       analysis.hasDocker = true;
     }
-    if (fileName.includes('kubernetes') || fileName.includes('k8s') || path.includes('k8s')) {
+    
+    if (fileName.includes('kubernetes') || fileName.includes('k8s') || extension === 'yaml' && path.includes('k8s')) {
       analysis.hasKubernetes = true;
     }
-    if (path.includes('.github') || fileName.includes('ci') || fileName.includes('pipeline') || fileName.includes('workflow')) {
+    
+    if (path.includes('.github/workflows/') || fileName.includes('.yml') && path.includes('.github')) {
       analysis.hasCI = true;
     }
-    if (fileName === 'vercel.json' || path.includes('vercel')) {
+    
+    if (fileName === 'vercel.json' || fileName === '.vercelignore') {
       analysis.hasVercel = true;
     }
-    if (fileName === 'netlify.toml' || path.includes('netlify')) {
+    
+    if (fileName === 'netlify.toml' || fileName === '_redirects') {
       analysis.hasNetlify = true;
     }
     
-    // Development Tools
-    if (fileName === '.eslintrc' || fileName === 'eslint.config.js' || fileName.includes('eslint')) {
+    // Development Tools - check for actual config files
+    if (fileName.startsWith('.eslintrc') || fileName === 'eslint.config.js' || 
+        (packageJsonContent?.devDependencies?.eslint)) {
       analysis.hasESLint = true;
     }
-    if (fileName === '.prettierrc' || fileName === 'prettier.config.js' || fileName.includes('prettier')) {
+    
+    if (fileName.startsWith('.prettierrc') || fileName === 'prettier.config.js' || 
+        (packageJsonContent?.devDependencies?.prettier)) {
       analysis.hasPrettier = true;
     }
-    if (path.includes('storybook') || fileName.includes('stories') || fileName.includes('storybook')) {
+    
+    if (path.includes('.storybook/') || fileName.includes('stories') || 
+        (packageJsonContent?.devDependencies?.['@storybook/react'])) {
       analysis.hasStorybook = true;
     }
 
@@ -354,13 +391,40 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
     }
   });
 
-  // Determine architecture patterns
-  if (serviceCount > 10 || analysis.hasKubernetes || analysis.hasMicroservices) {
-    analysis.architecture = 'microservices';
-    analysis.patterns.push('Microservices');
-  } else if (analysis.hasAPI && analysis.hasDatabase) {
-    analysis.architecture = 'layered';
-    analysis.patterns.push('Layered Architecture');
+  // Use package.json for more accurate detection
+  if (packageJsonContent) {
+    const allDeps = {
+      ...packageJsonContent.dependencies,
+      ...packageJsonContent.devDependencies
+    };
+
+    // Check dependencies more accurately
+    if (allDeps.react) analysis.hasReact = true;
+    if (allDeps.vue) analysis.hasVue = true;
+    if (allDeps['@angular/core']) analysis.hasAngular = true;
+    if (allDeps.next) analysis.hasNextJS = true;
+    if (allDeps.typescript) analysis.hasTypeScript = true;
+    if (allDeps.tailwindcss) analysis.hasTailwind = true;
+    if (allDeps.bootstrap) analysis.hasBootstrap = true;
+    if (allDeps['styled-components']) analysis.hasStyledComponents = true;
+    if (allDeps.express) analysis.hasExpress = true;
+    if (allDeps.prisma) analysis.hasPrisma = true;
+    if (allDeps.sequelize) analysis.hasSequelize = true;
+    if (allDeps.mongoose) analysis.hasMongoose = true;
+    if (allDeps.graphql) analysis.hasGraphQL = true;
+    if (allDeps.redux || allDeps['@reduxjs/toolkit']) analysis.hasRedux = true;
+    if (allDeps.zustand) analysis.hasZustand = true;
+    if (allDeps.vite) analysis.hasVite = true;
+    if (allDeps.webpack) analysis.hasWebpack = true;
+  }
+
+  // Determine architecture patterns based on what's actually detected
+  if (analysis.hasAPI && analysis.hasDatabase) {
+    analysis.architecture = 'full-stack';
+    analysis.patterns.push('Full-Stack Application');
+  } else if (analysis.hasReact || analysis.hasVue || analysis.hasAngular) {
+    analysis.architecture = 'single-page-app';
+    analysis.patterns.push('Single Page Application');
   }
 
   if (analysis.hasRedux || analysis.hasZustand || analysis.hasRecoil) {
@@ -374,15 +438,19 @@ const analyzeRepositoryStructure = (repositoryData: any) => {
   }
 
   if (analysis.hasTests || analysis.hasTesting) {
-    analysis.patterns.push('Test-Driven Development');
+    analysis.patterns.push('Testing Strategy');
   }
 
-  if (analysis.hasDocker || analysis.hasKubernetes) {
+  if (analysis.hasDocker) {
     analysis.patterns.push('Containerization');
   }
 
-  // Determine complexity
-  if (totalFiles > 100 || componentCount > 20 || serviceCount > 10) {
+  if (analysis.hasCI) {
+    analysis.patterns.push('Continuous Integration');
+  }
+
+  // Determine complexity based on actual file counts
+  if (totalFiles > 100 || componentCount > 20) {
     analysis.complexity = 'complex';
     analysis.scale = 'large';
   } else if (totalFiles > 50 || componentCount > 10) {
@@ -399,9 +467,9 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
 
   const { analysis } = result;
 
-  // Create a comprehensive architecture diagram
+  // Create a precise architecture diagram based on actual detected technologies
   let mermaidCode = `flowchart TB
-    %% Define comprehensive styles for better visual hierarchy
+    %% Comprehensive styling for modern architecture diagrams
     classDef userLayer fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#0d47a1
     classDef frontendLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c
     classDef backendLayer fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#1b5e20
@@ -409,7 +477,7 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
     classDef infraLayer fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#880e4f
     classDef apiLayer fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#004d40
     classDef toolLayer fill:#f1f8e9,stroke:#558b2f,stroke-width:2px,color:#33691e
-    classDef securityLayer fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#b71c1c
+    classDef stateLayer fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:#ef6c00
 
 `;
 
@@ -421,34 +489,35 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
   nodes['user'] = userNode;
   mermaidCode += `    ${userNode}["👥 Users"]:::userLayer\n`;
 
-  // Frontend Layer - More sophisticated detection
-  if (analysis.hasReact || analysis.hasVue || analysis.hasAngular || analysis.hasNextJS) {
+  // Frontend Layer - only show what's actually detected
+  if (analysis.hasReact || analysis.hasVue || analysis.hasAngular) {
     const frontendNode = `F${nodeId++}`;
     nodes['frontend'] = frontendNode;
     
-    let frontendTech = 'Frontend';
-    if (analysis.hasNextJS) frontendTech = '⚡ Next.js App';
-    else if (analysis.hasReact) frontendTech = '⚛️ React App';
-    else if (analysis.hasVue) frontendTech = '💚 Vue.js App';
-    else if (analysis.hasAngular) frontendTech = '🅰️ Angular App';
+    let frontendTech = 'Frontend Application';
+    if (analysis.hasNextJS) frontendTech = '⚡ Next.js Application';
+    else if (analysis.hasReact) frontendTech = '⚛️ React Application';
+    else if (analysis.hasVue) frontendTech = '💚 Vue.js Application';
+    else if (analysis.hasAngular) frontendTech = '🅰️ Angular Application';
     
     mermaidCode += `    ${frontendNode}["${frontendTech}"]:::frontendLayer\n`;
   }
 
-  // UI/Styling Layer
-  if (analysis.hasTailwind || analysis.hasBootstrap || analysis.hasStyledComponents || analysis.styles.length > 0) {
+  // UI/Styling Layer - only if detected
+  if (analysis.hasTailwind || analysis.hasBootstrap || analysis.hasStyledComponents || analysis.hasSass) {
     const stylingNode = `S${nodeId++}`;
     nodes['styling'] = stylingNode;
     
-    let stylingTech = '🎨 Styling';
+    let stylingTech = '🎨 Styling System';
     if (analysis.hasTailwind) stylingTech = '🎨 Tailwind CSS';
     else if (analysis.hasBootstrap) stylingTech = '🎨 Bootstrap';
     else if (analysis.hasStyledComponents) stylingTech = '🎨 Styled Components';
+    else if (analysis.hasSass) stylingTech = '🎨 Sass/SCSS';
     
     mermaidCode += `    ${stylingNode}["${stylingTech}"]:::frontendLayer\n`;
   }
 
-  // State Management
+  // State Management - only if actually detected
   if (analysis.hasRedux || analysis.hasZustand || analysis.hasRecoil) {
     const stateNode = `ST${nodeId++}`;
     nodes['state'] = stateNode;
@@ -458,10 +527,10 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
     else if (analysis.hasZustand) stateTech = '🔄 Zustand Store';
     else if (analysis.hasRecoil) stateTech = '🔄 Recoil State';
     
-    mermaidCode += `    ${stateNode}["${stateTech}"]:::frontendLayer\n`;
+    mermaidCode += `    ${stateNode}["${stateTech}"]:::stateLayer\n`;
   }
 
-  // API Gateway/Layer
+  // API Layer - only if detected
   if (analysis.hasAPI || analysis.hasGraphQL) {
     const apiNode = `A${nodeId++}`;
     nodes['api'] = apiNode;
@@ -473,12 +542,12 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
     mermaidCode += `    ${apiNode}["${apiTech}"]:::apiLayer\n`;
   }
 
-  // Backend Services
+  // Backend Services - only if detected
   if (analysis.hasNodeJS || analysis.hasExpress || analysis.hasPython || analysis.hasJava) {
     const backendNode = `B${nodeId++}`;
     nodes['backend'] = backendNode;
     
-    let backendTech = '⚙️ Backend Services';
+    let backendTech = '⚙️ Backend Server';
     if (analysis.hasExpress) backendTech = '⚙️ Express.js Server';
     else if (analysis.hasKoa) backendTech = '⚙️ Koa.js Server';
     else if (analysis.hasDjango) backendTech = '⚙️ Django Server';
@@ -488,14 +557,14 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
     mermaidCode += `    ${backendNode}["${backendTech}"]:::backendLayer\n`;
   }
 
-  // Business Logic/Services
+  // Business Logic/Services - only if detected
   if (analysis.services.length > 0) {
     const servicesNode = `SV${nodeId++}`;
     nodes['services'] = servicesNode;
     mermaidCode += `    ${servicesNode}["🔧 Business Logic<br/>(${analysis.services.length} services)"]:::backendLayer\n`;
   }
 
-  // Database Layer with ORM
+  // Database Layer with ORM - only if detected
   if (analysis.hasPrisma || analysis.hasSequelize || analysis.hasTypeORM || analysis.hasMongoose) {
     const ormNode = `O${nodeId++}`;
     nodes['orm'] = ormNode;
@@ -509,8 +578,8 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
     mermaidCode += `    ${ormNode}["${ormTech}"]:::dataLayer\n`;
   }
 
-  // Database
-  if (analysis.hasDatabase || analysis.hasMongoDB || analysis.hasMySQL || analysis.hasPostgreSQL) {
+  // Database - only if detected
+  if (analysis.hasDatabase) {
     const dbNode = `DB${nodeId++}`;
     nodes['database'] = dbNode;
     
@@ -522,32 +591,25 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
     mermaidCode += `    ${dbNode}["${dbTech}"]:::dataLayer\n`;
   }
 
-  // Caching Layer
-  if (analysis.hasRedis) {
-    const cacheNode = `C${nodeId++}`;
-    nodes['cache'] = cacheNode;
-    mermaidCode += `    ${cacheNode}["⚡ Redis Cache"]:::dataLayer\n`;
-  }
-
-  // Build Tools
+  // Build Tools - only if detected
   if (analysis.hasVite || analysis.hasWebpack || analysis.hasParcel) {
     const buildNode = `BT${nodeId++}`;
     nodes['build'] = buildNode;
     
     let buildTech = '🔨 Build Tools';
-    if (analysis.hasVite) buildTech = '⚡ Vite';
-    else if (analysis.hasWebpack) buildTech = '📦 Webpack';
-    else if (analysis.hasParcel) buildTech = '📦 Parcel';
+    if (analysis.hasVite) buildTech = '⚡ Vite Build';
+    else if (analysis.hasWebpack) buildTech = '📦 Webpack Build';
+    else if (analysis.hasParcel) buildTech = '📦 Parcel Build';
     
     mermaidCode += `    ${buildNode}["${buildTech}"]:::toolLayer\n`;
   }
 
-  // Testing Infrastructure
-  if (analysis.hasTests || analysis.hasTesting) {
+  // Testing Infrastructure - only if actually detected
+  if (analysis.hasTests && analysis.hasTesting) {
     const testNode = `T${nodeId++}`;
     nodes['testing'] = testNode;
     
-    let testTech = '🧪 Testing';
+    let testTech = '🧪 Testing Suite';
     if (analysis.hasJest) testTech = '🧪 Jest Testing';
     else if (analysis.hasCypress) testTech = '🧪 Cypress E2E';
     else if (analysis.hasPlaywright) testTech = '🧪 Playwright Testing';
@@ -555,7 +617,7 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
     mermaidCode += `    ${testNode}["${testTech}"]:::toolLayer\n`;
   }
 
-  // DevOps & Infrastructure
+  // DevOps & Infrastructure - only if detected
   if (analysis.hasDocker || analysis.hasKubernetes) {
     const infraNode = `I${nodeId++}`;
     nodes['infrastructure'] = infraNode;
@@ -567,37 +629,40 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
     mermaidCode += `    ${infraNode}["${infraTech}"]:::infraLayer\n`;
   }
 
-  // CI/CD Pipeline
+  // CI/CD Pipeline - only if actually detected
   if (analysis.hasCI) {
     const ciNode = `CI${nodeId++}`;
     nodes['cicd'] = ciNode;
     mermaidCode += `    ${ciNode}["🚀 CI/CD Pipeline"]:::infraLayer\n`;
   }
 
-  // Security Layer
+  // Code Quality - only if detected
   if (analysis.hasESLint || analysis.hasPrettier) {
-    const securityNode = `SEC${nodeId++}`;
-    nodes['security'] = securityNode;
-    mermaidCode += `    ${securityNode}["🔒 Code Quality<br/>ESLint • Prettier"]:::securityLayer\n`;
+    const qualityNode = `Q${nodeId++}`;
+    nodes['quality'] = qualityNode;
+    let qualityTools = [];
+    if (analysis.hasESLint) qualityTools.push('ESLint');
+    if (analysis.hasPrettier) qualityTools.push('Prettier');
+    mermaidCode += `    ${qualityNode}["🔍 Code Quality<br/>${qualityTools.join(' • ')}"]:::toolLayer\n`;
   }
 
-  // Documentation
-  if (analysis.hasStorybook || analysis.docs.length > 0) {
+  // Documentation - only if detected
+  if (analysis.hasStorybook || analysis.docs.length > 5) {
     const docsNode = `DOC${nodeId++}`;
     nodes['docs'] = docsNode;
     
     let docsTech = '📚 Documentation';
-    if (analysis.hasStorybook) docsTech = '📚 Storybook';
+    if (analysis.hasStorybook) docsTech = '📚 Storybook Docs';
     
     mermaidCode += `    ${docsNode}["${docsTech}"]:::toolLayer\n`;
   }
 
-  // Add sophisticated connections with data flow
-  mermaidCode += '\n    %% Data Flow Connections\n';
+  // Add realistic connections based on actual architecture
+  mermaidCode += '\n    %% Realistic Data Flow Connections\n';
   
   // User to Frontend
   if (nodes['user'] && nodes['frontend']) {
-    mermaidCode += `    ${nodes['user']} -->|"HTTP Requests"| ${nodes['frontend']}\n`;
+    mermaidCode += `    ${nodes['user']} -->|"User Interactions"| ${nodes['frontend']}\n`;
   }
   
   // Frontend connections
@@ -620,17 +685,17 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
   
   // Backend to Services
   if (nodes['backend'] && nodes['services']) {
-    mermaidCode += `    ${nodes['backend']} -->|"Service Calls"| ${nodes['services']}\n`;
+    mermaidCode += `    ${nodes['backend']} -->|"Service Layer"| ${nodes['services']}\n`;
   }
   
   // Services to ORM
   if (nodes['services'] && nodes['orm']) {
-    mermaidCode += `    ${nodes['services']} <-->|"Data Queries"| ${nodes['orm']}\n`;
+    mermaidCode += `    ${nodes['services']} <-->|"Data Access"| ${nodes['orm']}\n`;
   }
   
   // ORM to Database
   if (nodes['orm'] && nodes['database']) {
-    mermaidCode += `    ${nodes['orm']} <-->|"SQL/NoSQL"| ${nodes['database']}\n`;
+    mermaidCode += `    ${nodes['orm']} <-->|"Database Queries"| ${nodes['database']}\n`;
   }
   
   // Direct Backend to Database (if no ORM)
@@ -638,28 +703,18 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
     mermaidCode += `    ${nodes['backend']} <-->|"Direct DB Access"| ${nodes['database']}\n`;
   }
   
-  // Cache connections
-  if (nodes['cache']) {
-    if (nodes['backend']) {
-      mermaidCode += `    ${nodes['backend']} <-->|"Cache Layer"| ${nodes['cache']}\n`;
-    }
-    if (nodes['api']) {
-      mermaidCode += `    ${nodes['api']} <-->|"Response Cache"| ${nodes['cache']}\n`;
-    }
-  }
-  
   // Build tools
   if (nodes['build'] && nodes['frontend']) {
-    mermaidCode += `    ${nodes['build']} -.->|"Builds"| ${nodes['frontend']}\n`;
+    mermaidCode += `    ${nodes['build']} -.->|"Build Process"| ${nodes['frontend']}\n`;
   }
   
   // Testing connections
   if (nodes['testing']) {
     if (nodes['frontend']) {
-      mermaidCode += `    ${nodes['testing']} -.->|"Tests"| ${nodes['frontend']}\n`;
+      mermaidCode += `    ${nodes['testing']} -.->|"Frontend Tests"| ${nodes['frontend']}\n`;
     }
     if (nodes['backend']) {
-      mermaidCode += `    ${nodes['testing']} -.->|"Tests"| ${nodes['backend']}\n`;
+      mermaidCode += `    ${nodes['testing']} -.->|"Backend Tests"| ${nodes['backend']}\n`;
     }
   }
   
@@ -681,18 +736,15 @@ const generateAdvancedMermaidDiagram = (repositoryData: any): string => {
     if (nodes['testing']) {
       mermaidCode += `    ${nodes['cicd']} -.->|"Runs Tests"| ${nodes['testing']}\n`;
     }
-    if (nodes['infrastructure']) {
-      mermaidCode += `    ${nodes['cicd']} -.->|"Deploys"| ${nodes['infrastructure']}\n`;
-    }
   }
   
-  // Security/Quality connections
-  if (nodes['security']) {
+  // Quality connections
+  if (nodes['quality']) {
     if (nodes['frontend']) {
-      mermaidCode += `    ${nodes['security']} -.->|"Code Quality"| ${nodes['frontend']}\n`;
+      mermaidCode += `    ${nodes['quality']} -.->|"Code Quality"| ${nodes['frontend']}\n`;
     }
     if (nodes['backend']) {
-      mermaidCode += `    ${nodes['security']} -.->|"Code Quality"| ${nodes['backend']}\n`;
+      mermaidCode += `    ${nodes['quality']} -.->|"Code Quality"| ${nodes['backend']}\n`;
     }
   }
   
@@ -875,7 +927,7 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
           <Sparkles className="w-4 h-4 text-yellow-500" />
         </CardTitle>
         <CardDescription>
-          Advanced Mermaid.js architecture visualization - intelligently generated from deep repository analysis
+          Real-time architecture visualization - intelligently generated from actual repository analysis
         </CardDescription>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={downloadDiagram} disabled={!mermaidLoaded}>
@@ -894,7 +946,7 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
             </p>
             <Badge variant="outline" className="px-4 py-2">
               <Sparkles className="w-4 h-4 mr-2" />
-              Powered by Advanced Mermaid.js
+              Powered by Real-time Analysis
             </Badge>
           </div>
         ) : (
@@ -906,7 +958,7 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                    <p className="text-sm text-muted-foreground">Generating advanced architecture diagram...</p>
+                    <p className="text-sm text-muted-foreground">Generating precise architecture diagram...</p>
                   </div>
                 </div>
               )}
@@ -942,12 +994,12 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
               </div>
             )}
 
-            {/* Enhanced Repository Insights */}
+            {/* Real-time Repository Insights */}
             {repositoryData && architectureAnalysis && (
               <div className="p-6 bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 rounded-xl border border-border/50">
                 <h4 className="font-bold mb-4 flex items-center gap-2">
                   <Brain className="w-5 h-5" />
-                  Advanced Architecture Analysis
+                  Real-time Architecture Analysis
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                   <div className="text-center p-3 bg-background/50 rounded-lg">
@@ -990,22 +1042,26 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
               </div>
             )}
 
-            {/* Enhanced Technology Stack with Patterns */}
+            {/* Enhanced Technology Stack with Detected Patterns */}
             {architectureAnalysis && (
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-semibold mb-3">Architecture Patterns</h4>
+                  <h4 className="font-semibold mb-3">Detected Architecture Patterns</h4>
                   <div className="flex flex-wrap gap-2">
-                    {architectureAnalysis.patterns.map((pattern, index) => (
-                      <Badge key={index} variant="default" className="bg-gradient-to-r from-primary to-primary/80">
-                        {pattern}
-                      </Badge>
-                    ))}
+                    {architectureAnalysis.patterns.length > 0 ? (
+                      architectureAnalysis.patterns.map((pattern, index) => (
+                        <Badge key={index} variant="default" className="bg-gradient-to-r from-primary to-primary/80">
+                          {pattern}
+                        </Badge>
+                      ))
+                    ) : (
+                      <Badge variant="outline">Simple Application Structure</Badge>
+                    )}
                   </div>
                 </div>
                 
                 <div>
-                  <h4 className="font-semibold mb-3">Technology Stack</h4>
+                  <h4 className="font-semibold mb-3">Detected Technology Stack</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Frontend Technologies */}
                     <div className="space-y-2">
@@ -1018,6 +1074,9 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
                         {architectureAnalysis.hasTypeScript && <Badge variant="secondary">TypeScript</Badge>}
                         {architectureAnalysis.hasTailwind && <Badge variant="secondary">Tailwind CSS</Badge>}
                         {architectureAnalysis.hasStyledComponents && <Badge variant="secondary">Styled Components</Badge>}
+                        {architectureAnalysis.hasSass && <Badge variant="secondary">Sass/SCSS</Badge>}
+                        {(!architectureAnalysis.hasReact && !architectureAnalysis.hasVue && !architectureAnalysis.hasAngular && !architectureAnalysis.hasNextJS) && 
+                          <Badge variant="outline">No frontend framework detected</Badge>}
                       </div>
                     </div>
                     
@@ -1031,20 +1090,29 @@ export const SystemArchitectureDiagram: React.FC<SystemArchitectureDiagramProps>
                         {architectureAnalysis.hasDjango && <Badge variant="secondary">Django</Badge>}
                         {architectureAnalysis.hasFlask && <Badge variant="secondary">Flask</Badge>}
                         {architectureAnalysis.hasGraphQL && <Badge variant="secondary">GraphQL</Badge>}
+                        {(!architectureAnalysis.hasNodeJS && !architectureAnalysis.hasExpress && !architectureAnalysis.hasPython && !architectureAnalysis.hasDjango && !architectureAnalysis.hasFlask) && 
+                          <Badge variant="outline">No backend detected</Badge>}
                       </div>
                     </div>
                     
-                    {/* Infrastructure */}
+                    {/* Infrastructure & Tools */}
                     <div className="space-y-2">
-                      <h5 className="text-sm font-medium text-muted-foreground">Infrastructure</h5>
+                      <h5 className="text-sm font-medium text-muted-foreground">Infrastructure & Tools</h5>
                       <div className="flex flex-wrap gap-2">
                         {architectureAnalysis.hasPrisma && <Badge variant="secondary">Prisma</Badge>}
                         {architectureAnalysis.hasDocker && <Badge variant="secondary">Docker</Badge>}
                         {architectureAnalysis.hasKubernetes && <Badge variant="secondary">Kubernetes</Badge>}
                         {architectureAnalysis.hasVite && <Badge variant="secondary">Vite</Badge>}
+                        {architectureAnalysis.hasWebpack && <Badge variant="secondary">Webpack</Badge>}
                         {architectureAnalysis.hasRedux && <Badge variant="secondary">Redux</Badge>}
+                        {architectureAnalysis.hasZustand && <Badge variant="secondary">Zustand</Badge>}
                         {architectureAnalysis.hasJest && <Badge variant="secondary">Jest</Badge>}
                         {architectureAnalysis.hasCypress && <Badge variant="secondary">Cypress</Badge>}
+                        {architectureAnalysis.hasCI && <Badge variant="secondary">CI/CD</Badge>}
+                        {architectureAnalysis.hasESLint && <Badge variant="secondary">ESLint</Badge>}
+                        {architectureAnalysis.hasPrettier && <Badge variant="secondary">Prettier</Badge>}
+                        {(!architectureAnalysis.hasPrisma && !architectureAnalysis.hasDocker && !architectureAnalysis.hasVite && !architectureAnalysis.hasWebpack && !architectureAnalysis.hasRedux && !architectureAnalysis.hasJest && !architectureAnalysis.hasCI) && 
+                          <Badge variant="outline">Minimal tooling detected</Badge>}
                       </div>
                     </div>
                   </div>
